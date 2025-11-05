@@ -1,8 +1,10 @@
-from sqlalchemy.orm import Session
-from decimal import Decimal
-from app.models import Account
-from app import publisher
 import logging
+from decimal import Decimal
+
+from sqlalchemy.orm import Session
+
+from app import publisher
+from app.models import Account
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +15,7 @@ def create_account(db: Session, account_number: str):
     db.add(account)
     db.commit()
     db.refresh(account)
-    logger.info(f"Created account {account.id} with number {account_number}")
+    logger.info("Created account %s with number %s", account.id, account_number)
     return account
 
 
@@ -32,23 +34,20 @@ def deposit(db: Session, account_id: int, amount: Decimal):
     account = get_account(db, account_id)
     if not account:
         return None
-    
+
     account.balance += amount
     db.commit()
     db.refresh(account)
-    
+
     # Publish transaction event
     try:
         publisher.publish_transaction_event(
-            account_id=account.id,
-            account_number=account.account_number,
-            amount=amount,
-            transaction_type="deposit"
+            account_id=account.id, account_number=account.account_number, amount=amount, transaction_type="deposit"
         )
-    except Exception as e:
-        logger.error(f"Failed to publish deposit event: {str(e)}")
-    
-    logger.info(f"Deposited {amount} to account {account_id}")
+    except (ConnectionError, ValueError, RuntimeError) as e:
+        logger.error("Failed to publish deposit event: %s", str(e))
+
+    logger.info("Deposited %s to account %s", amount, account_id)
     return account
 
 
@@ -57,25 +56,21 @@ def withdraw(db: Session, account_id: int, amount: Decimal):
     account = get_account(db, account_id)
     if not account:
         return None
-    
+
     if account.balance < amount:
         raise ValueError("Insufficient funds")
-    
+
     account.balance -= amount
     db.commit()
     db.refresh(account)
-    
+
     # Publish transaction event
     try:
         publisher.publish_transaction_event(
-            account_id=account.id,
-            account_number=account.account_number,
-            amount=amount,
-            transaction_type="withdraw"
+            account_id=account.id, account_number=account.account_number, amount=amount, transaction_type="withdraw"
         )
-    except Exception as e:
-        logger.error(f"Failed to publish withdraw event: {str(e)}")
-    
-    logger.info(f"Withdrew {amount} from account {account_id}")
-    return account
+    except (ConnectionError, ValueError, RuntimeError) as e:
+        logger.error("Failed to publish withdraw event: %s", str(e))
 
+    logger.info("Withdrew %s from account %s", amount, account_id)
+    return account

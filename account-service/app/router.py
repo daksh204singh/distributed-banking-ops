@@ -13,11 +13,8 @@ def create_account(account_data: AccountCreate, db: Session = Depends(get_db)):
     # Check if account number already exists
     existing_account = service.get_account_by_number(db, account_data.account_number)
     if existing_account:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Account number already exists"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account number already exists")
+
     account = service.create_account(db, account_data.account_number)
     return account
 
@@ -27,10 +24,7 @@ def get_account(account_id: int, db: Session = Depends(get_db)):
     """Get account balance by ID"""
     account = service.get_account(db, account_id)
     if not account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Account not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
     return account
 
 
@@ -39,10 +33,7 @@ def deposit(account_id: int, deposit_data: DepositRequest, db: Session = Depends
     """Deposit funds to account"""
     account = service.deposit(db, account_id, deposit_data.amount)
     if not account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Account not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
     return account
 
 
@@ -52,14 +43,7 @@ def withdraw(account_id: int, withdraw_data: WithdrawRequest, db: Session = Depe
     try:
         account = service.withdraw(db, account_id, withdraw_data.amount)
         if not account:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Account not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
         return account
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
 class AccountCreate(BaseModel):
@@ -25,4 +26,3 @@ class DepositRequest(BaseModel):
 
 class WithdrawRequest(BaseModel):
     amount: Decimal = Field(..., gt=0, description="Withdrawal amount (must be positive)")
-
