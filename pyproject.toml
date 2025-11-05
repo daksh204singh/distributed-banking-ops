@@ -1,0 +1,23 @@
+[tool.black]
+line-length = 127
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | env
+  | migrations
+  | alembic
+)/
+'''
+
+[tool.pylint.messages_control]
+max-line-length = 127
+disable = [
+    "C0111",  # missing-docstring
+    "C0103",  # invalid-name
+]
+
+
