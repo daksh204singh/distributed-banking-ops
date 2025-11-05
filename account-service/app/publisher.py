@@ -1,14 +1,15 @@
-import pika
 import json
+import logging
+import os
+import sys
 from datetime import datetime
 from decimal import Decimal
-import sys
-import os
-import logging
+
+import pika
 
 # Add parent directory to path to import shared module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from shared.events import TransactionEvent
+from shared.events import TransactionEvent  # pylint: disable=wrong-import-position
 
 logger = logging.getLogger(__name__)
 
@@ -55,10 +56,10 @@ def publish_transaction_event(account_id: int, account_number: str, amount: Deci
             ),
         )
 
-        logger.info(f"Published transaction event: {transaction_type} for account {account_id}")
+        logger.info("Published transaction event: %s for account %s", transaction_type, account_id)
         connection.close()
 
-    except Exception as e:
-        logger.error(f"Failed to publish transaction event: {str(e)}")
+    except (ConnectionError, ValueError, RuntimeError) as e:
+        logger.error("Failed to publish transaction event: %s", str(e))
         # In production, you might want to raise or handle this differently
         raise

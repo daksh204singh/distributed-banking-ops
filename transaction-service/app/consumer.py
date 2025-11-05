@@ -1,14 +1,15 @@
-import pika
 import json
 import logging
 import os
 import sys
 
+import pika
+
 # Add parent directory to path to import shared module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from app.database import SessionLocal
-from app.service import process_transaction
-from shared.events import TransactionEvent
+from app.database import SessionLocal  # pylint: disable=wrong-import-position
+from app.service import process_transaction  # pylint: disable=wrong-import-position
+from shared.events import TransactionEvent  # pylint: disable=wrong-import-position
 
 logger = logging.getLogger(__name__)
 
@@ -19,14 +20,14 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 RABBITMQ_QUEUE = os.getenv("RABBITMQ_QUEUE")
 
 
-def callback(ch, method, properties, body):
+def callback(ch, method, _properties, body):
     """Callback function to process incoming messages"""
     try:
         # Parse message
         message_data = json.loads(body)
         event = TransactionEvent(**message_data)
 
-        logger.info(f"Received transaction event: {event.transaction_type} for account {event.account_id}")
+        logger.info("Received transaction event: %s for account %s", event.transaction_type, event.account_id)
 
         # Process transaction
         db = SessionLocal()
@@ -38,13 +39,13 @@ def callback(ch, method, properties, body):
                 amount=event.amount,
                 transaction_type=event.transaction_type,
             )
-            logger.info(f"Successfully processed transaction {transaction.id}")
+            logger.info("Successfully processed transaction %s", transaction.id)
 
             # Acknowledge message
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
-        except Exception as e:
-            logger.error(f"Error processing transaction: {str(e)}")
+        except (ValueError, RuntimeError) as e:
+            logger.error("Error processing transaction: %s", str(e))
             # In production, you might want to use a dead letter queue
             # For now, we'll reject and requeue
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
@@ -52,10 +53,10 @@ def callback(ch, method, properties, body):
             db.close()
 
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse message: {str(e)}")
+        logger.error("Failed to parse message: %s", str(e))
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-    except Exception as e:
-        logger.error(f"Unexpected error in callback: {str(e)}")
+    except (ConnectionError, RuntimeError) as e:
+        logger.error("Unexpected error in callback: %s", str(e))
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
 
@@ -77,7 +78,7 @@ def start_consumer():
         # Set up consumer
         channel.basic_consume(queue=RABBITMQ_QUEUE, on_message_callback=callback)
 
-        logger.info(f"Started consuming messages from queue: {RABBITMQ_QUEUE}")
+        logger.info("Started consuming messages from queue: %s", RABBITMQ_QUEUE)
         logger.info("Waiting for messages. To exit press CTRL+C")
 
         # Start consuming
@@ -87,6 +88,6 @@ def start_consumer():
         logger.info("Stopping consumer...")
         channel.stop_consuming()
         connection.close()
-    except Exception as e:
-        logger.error(f"Error in consumer: {str(e)}")
+    except (ConnectionError, RuntimeError) as e:
+        logger.error("Error in consumer: %s", str(e))
         raise

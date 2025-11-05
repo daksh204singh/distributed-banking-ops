@@ -1,9 +1,11 @@
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
+
 from app.database import get_db
-from app.service import get_transactions
 from app.schemas import TransactionResponse
+from app.service import get_transactions
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 

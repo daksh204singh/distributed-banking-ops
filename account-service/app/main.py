@@ -1,7 +1,9 @@
-from fastapi import FastAPI
-from app.database import engine, Base
-from app.router import router
 import logging
+
+from fastapi import FastAPI
+
+from app.database import Base, engine
+from app.router import router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")

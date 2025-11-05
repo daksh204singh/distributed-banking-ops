@@ -1,9 +1,11 @@
-from fastapi import FastAPI
-from app.database import engine, Base
-from app.router import router
-from app.consumer import start_consumer
-import threading
 import logging
+import threading
+
+from fastapi import FastAPI
+
+from app.consumer import start_consumer
+from app.database import Base, engine
+from app.router import router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -18,13 +20,11 @@ app = FastAPI(
 app.include_router(router)
 
 # Start RabbitMQ consumer in background thread
-consumer_thread = None
 
 
 @app.on_event("startup")
 def startup_event():
     """Start RabbitMQ consumer on application startup"""
-    global consumer_thread
     consumer_thread = threading.Thread(target=start_consumer, daemon=True)
     consumer_thread.start()
     logging.info("Transaction service started and consumer thread initialized")

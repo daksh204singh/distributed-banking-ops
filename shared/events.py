@@ -1,10 +1,11 @@
 """
 Shared event schemas and constants for microservices communication
 """
-from pydantic import BaseModel
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
+
+from pydantic import BaseModel
 
 
 class TransactionType(str, Enum):

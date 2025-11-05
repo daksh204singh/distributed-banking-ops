@@ -18,6 +18,11 @@ max-line-length = 127
 disable = [
     "C0111",  # missing-docstring
     "C0103",  # invalid-name
+    "R0903",  # too-few-public-methods (for models/schemas)
+    "R0801",  # duplicate-code (acceptable for shared patterns)
+    "E0611",  # no-name-in-module (false positives from pylint's module resolution)
+    "E0401",  # import-error (false positives from pylint's module resolution)
+    "W0603",  # global-statement (acceptable for FastAPI app initialization)
 ]
 
 
