@@ -1,0 +1,115 @@
+name: Lint Microservices
+
+on:
+  push:
+    branches: [ main, develop, release ]
+  pull_request:
+    branches: [ main, develop, release ]
+  workflow_dispatch:
+
+jobs:
+  lint-account-service:
+    name: Lint Account Service
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r account-service/requirements.txt
+
+      - name: Run flake8
+        working-directory: ./account-service
+        run: |
+          flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 app/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run black check
+        working-directory: ./account-service
+        run: |
+          black --check app/
+
+      - name: Run pylint
+        working-directory: ./account-service
+        run: |
+          pylint app/ --max-line-length=127 --disable=C0111,C0103
+
+  lint-transaction-service:
+    name: Lint Transaction Service
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r transaction-service/requirements.txt
+
+      - name: Run flake8
+        working-directory: ./transaction-service
+        run: |
+          flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 app/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run black check
+        working-directory: ./transaction-service
+        run: |
+          black --check app/
+
+      - name: Run pylint
+        working-directory: ./transaction-service
+        run: |
+          pylint app/ --max-line-length=127 --disable=C0111,C0103
+
+  lint-shared:
+    name: Lint Shared Module
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pydantic
+
+      - name: Run flake8
+        working-directory: ./shared
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run black check
+        working-directory: ./shared
+        run: |
+          black --check .
+
+      - name: Run pylint
+        working-directory: ./shared
+        run: |
+          pylint *.py --max-line-length=127 --disable=C0111,C0103
+
