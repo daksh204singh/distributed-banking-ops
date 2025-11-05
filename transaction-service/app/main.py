@@ -6,18 +6,13 @@ import threading
 import logging
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="Transaction Service",
-    description="Microservice for processing and auditing transactions",
-    version="1.0.0"
+    title="Transaction Service", description="Microservice for processing and auditing transactions", version="1.0.0"
 )
 
 app.include_router(router)
@@ -49,7 +44,6 @@ def root():
         "version": "1.0.0",
         "endpoints": {
             "GET /transactions": "Get transaction history",
-            "GET /transactions?account_id={id}": "Get transactions for specific account"
-        }
+            "GET /transactions?account_id={id}": "Get transactions for specific account",
+        },
     }
-

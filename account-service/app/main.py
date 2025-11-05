@@ -4,19 +4,12 @@ from app.router import router
 import logging
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title="Account Service",
-    description="Microservice for managing bank accounts",
-    version="1.0.0"
-)
+app = FastAPI(title="Account Service", description="Microservice for managing bank accounts", version="1.0.0")
 
 app.include_router(router)
 
@@ -37,7 +30,6 @@ def root():
             "POST /accounts": "Create new account",
             "GET /accounts/{id}": "Get account balance",
             "PUT /accounts/{id}/deposit": "Deposit funds",
-            "PUT /accounts/{id}/withdraw": "Withdraw funds"
-        }
+            "PUT /accounts/{id}/withdraw": "Withdraw funds",
+        },
     }
-

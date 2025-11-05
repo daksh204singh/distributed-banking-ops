@@ -7,7 +7,7 @@ import os
 import logging
 
 # Add parent directory to path to import shared module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from shared.events import TransactionEvent
 
 logger = logging.getLogger(__name__)
@@ -22,11 +22,7 @@ RABBITMQ_QUEUE = os.getenv("RABBITMQ_QUEUE")
 def get_connection():
     """Create and return RabbitMQ connection"""
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
-    parameters = pika.ConnectionParameters(
-        host=RABBITMQ_HOST,
-        port=RABBITMQ_PORT,
-        credentials=credentials
-    )
+    parameters = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
     return pika.BlockingConnection(parameters)
 
 
@@ -35,19 +31,19 @@ def publish_transaction_event(account_id: int, account_number: str, amount: Deci
     try:
         connection = get_connection()
         channel = connection.channel()
-        
+
         # Declare queue (idempotent operation)
         channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
-        
+
         # Create event
         event = TransactionEvent(
             account_id=account_id,
             account_number=account_number,
             amount=amount,
             transaction_type=transaction_type,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
-        
+
         # Publish message
         message = json.dumps(event.model_dump(), default=str)
         channel.basic_publish(
@@ -56,12 +52,12 @@ def publish_transaction_event(account_id: int, account_number: str, amount: Deci
             body=message,
             properties=pika.BasicProperties(
                 delivery_mode=2,  # Make message persistent
-            )
+            ),
         )
-        
+
         logger.info(f"Published transaction event: {transaction_type} for account {account_id}")
         connection.close()
-        
+
     except Exception as e:
         logger.error(f"Failed to publish transaction event: {str(e)}")
         # In production, you might want to raise or handle this differently

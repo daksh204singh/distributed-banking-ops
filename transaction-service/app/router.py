@@ -13,9 +13,8 @@ def list_transactions(
     account_id: Optional[int] = Query(None, description="Filter by account ID"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get transaction history"""
     transactions = get_transactions(db, account_id=account_id, skip=skip, limit=limit)
     return transactions
-

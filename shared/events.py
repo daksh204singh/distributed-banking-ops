@@ -9,12 +9,14 @@ from enum import Enum
 
 class TransactionType(str, Enum):
     """Transaction type enumeration"""
+
     DEPOSIT = "deposit"
     WITHDRAW = "withdraw"
 
 
 class TransactionEvent(BaseModel):
     """Standard transaction event schema"""
+
     account_id: int
     account_number: str
     amount: Decimal
@@ -28,13 +30,10 @@ class TransactionEvent(BaseModel):
                 "account_number": "ACC123456",
                 "amount": 100.50,
                 "transaction_type": "deposit",
-                "timestamp": "2024-01-01T12:00:00"
+                "timestamp": "2024-01-01T12:00:00",
             }
         }
 
 
 # RabbitMQ queue names
-QUEUE_NAMES = {
-    "TRANSACTION_CREATED": "transaction.created"
-}
-
+QUEUE_NAMES = {"TRANSACTION_CREATED": "transaction.created"}

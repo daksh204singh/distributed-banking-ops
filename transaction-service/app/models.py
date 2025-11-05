@@ -14,4 +14,3 @@ class Transaction(Base):
     processed_at = Column(DateTime(timezone=True), server_default=func.now())
     fraud_detected = Column(Boolean, default=False)
     notes = Column(String, nullable=True)
-

@@ -25,4 +25,3 @@ class DepositRequest(BaseModel):
 
 class WithdrawRequest(BaseModel):
     amount: Decimal = Field(..., gt=0, description="Withdrawal amount (must be positive)")
-
