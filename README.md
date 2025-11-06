@@ -22,7 +22,7 @@ By combining GitHub Actions, Docker, Ansible, Prometheus, Grafana, Loki, and aut
   - **Production Deployment & Release Automation**:
     - Develop and maintain Ansible playbooks for production deployment (not test).
     - Build and manage production-ready Docker images and registry pushes.
-  - **Load Balancing & Canary Deployment**: Develop and refine the obstacle detection and avoidance algorithm.
+  - **Load Balancing & Canary Deployment**:
     - Configure NGINX-based load balancing across app instances.
     - Implement canary deployment logic with gradual traffic migration and automated rollback.
   - **Release Branch Management**
