@@ -49,4 +49,4 @@ def get_transactions(db: Session, account_id: int = None, skip: int = 0, limit: 
     if account_id:
         query = query.filter(Transaction.account_id == account_id)
 
-    return query.order_by(Transaction.processed_at.desc()).offset(skip).limit(limit).all()
+    return query.order_by(Transaction.processed_at.desc(), Transaction.id.desc()).offset(skip).limit(limit).all()

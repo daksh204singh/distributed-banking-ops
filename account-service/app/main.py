@@ -8,8 +8,9 @@ from app.router import router
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables (only if engine is initialized)
+if engine is not None:
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Account Service", description="Microservice for managing bank accounts", version="1.0.0")
 
