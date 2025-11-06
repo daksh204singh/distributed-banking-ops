@@ -25,4 +25,11 @@ disable = [
     "W0603",  # global-statement (acceptable for FastAPI app initialization)
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["account-service/tests", "transaction-service/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
 

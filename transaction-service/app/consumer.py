@@ -13,12 +13,6 @@ from app.service import process_transaction  # pylint: disable=wrong-import-posi
 
 logger = logging.getLogger(__name__)
 
-RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
-RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT"))
-RABBITMQ_USER = os.getenv("RABBITMQ_USER")
-RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
-RABBITMQ_QUEUE = os.getenv("RABBITMQ_QUEUE")
-
 
 def callback(ch, method, _properties, body):
     """Callback function to process incoming messages"""
@@ -63,22 +57,32 @@ def callback(ch, method, _properties, body):
 def start_consumer():
     """Start consuming messages from RabbitMQ"""
     try:
-        credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
-        parameters = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
+        rabbitmq_host = os.getenv("RABBITMQ_HOST")
+        rabbitmq_port_str = os.getenv("RABBITMQ_PORT")
+        rabbitmq_user = os.getenv("RABBITMQ_USER")
+        rabbitmq_password = os.getenv("RABBITMQ_PASSWORD")
+        rabbitmq_queue = os.getenv("RABBITMQ_QUEUE")
+
+        if not all([rabbitmq_host, rabbitmq_port_str, rabbitmq_user, rabbitmq_password, rabbitmq_queue]):
+            raise RuntimeError("RabbitMQ environment variables are not set")
+
+        rabbitmq_port = int(rabbitmq_port_str)
+        credentials = pika.PlainCredentials(rabbitmq_user, rabbitmq_password)
+        parameters = pika.ConnectionParameters(host=rabbitmq_host, port=rabbitmq_port, credentials=credentials)
 
         connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
 
         # Declare queue (idempotent operation)
-        channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
+        channel.queue_declare(queue=rabbitmq_queue, durable=True)
 
         # Set QoS to process one message at a time
         channel.basic_qos(prefetch_count=1)
 
         # Set up consumer
-        channel.basic_consume(queue=RABBITMQ_QUEUE, on_message_callback=callback)
+        channel.basic_consume(queue=rabbitmq_queue, on_message_callback=callback)
 
-        logger.info("Started consuming messages from queue: %s", RABBITMQ_QUEUE)
+        logger.info("Started consuming messages from queue: %s", rabbitmq_queue)
         logger.info("Waiting for messages. To exit press CTRL+C")
 
         # Start consuming
