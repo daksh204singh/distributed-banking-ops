@@ -34,7 +34,7 @@ black account-service/app/ transaction-service/app/ shared/
 
 2. Install development dependencies:
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements-qa.txt
    ```
 
 3. Install service-specific dependencies:
