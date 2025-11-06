@@ -136,8 +136,9 @@ jobs:
           pip install -r account-service/requirements.txt
 
       - name: Run tests with coverage for service.py (min 75%)
+        working-directory: ./account-service
         run: |
-          pytest --cov=account-service/app/service --cov-report=term-missing --cov-fail-under=75 account-service/tests/ -v
+          pytest --cov=app.service --cov-report=term-missing --cov-fail-under=75 tests/ -v
 
   unit-test-coverage-transaction-service:
     name: Unit Tests & Coverage - Transaction Service
@@ -160,6 +161,7 @@ jobs:
           pip install -r transaction-service/requirements.txt
 
       - name: Run tests with coverage for service.py (min 75%)
+        working-directory: ./transaction-service
         run: |
-          pytest --cov=transaction-service/app/service --cov-report=term-missing --cov-fail-under=75 transaction-service/tests/ -v
+          pytest --cov=app.service --cov-report=term-missing --cov-fail-under=75 tests/ -v
 
