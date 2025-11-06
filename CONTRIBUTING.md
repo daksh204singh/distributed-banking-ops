@@ -32,10 +32,12 @@ black account-service/app/ transaction-service/app/ shared/
    .venv\Scripts\activate
    ```
 
-2. Install development dependencies:
+2. Install QA dependencies:
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements-qa.txt
    ```
+   
+   This installs linting tools (black, flake8, pylint) and testing tools (pytest, pytest-cov, pytest-mock, httpx).
 
 3. Install service-specific dependencies:
    ```bash
