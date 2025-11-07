@@ -1,27 +1,43 @@
 import json
-import logging
 import os
 import sys
 
 import pika
+import structlog
 
 # Add parent directory to path to import shared module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from shared.events import TransactionEvent  # pylint: disable=wrong-import-position,wrong-import-order
+from shared.logging_config import get_logger  # pylint: disable=wrong-import-position
 from app.database import SessionLocal  # pylint: disable=wrong-import-position
 from app.service import process_transaction  # pylint: disable=wrong-import-position
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def callback(ch, method, _properties, body):
     """Callback function to process incoming messages"""
+    # Extract correlation ID from message headers if available
+    correlation_id = "unknown"
+    if _properties.headers and "correlation_id" in _properties.headers:
+        correlation_id = _properties.headers["correlation_id"]
+
+    # Bind correlation ID to context for all logs in this callback
+    structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
+
     try:
         # Parse message
         message_data = json.loads(body)
         event = TransactionEvent(**message_data)
 
-        logger.info("Received transaction event: %s for account %s", event.transaction_type, event.account_id)
+        logger.info(
+            "transaction_event_received",
+            transaction_type=event.transaction_type,
+            account_id=event.account_id,
+            account_number=event.account_number,
+            amount=str(event.amount),
+            correlation_id=correlation_id,
+        )
 
         # Process transaction
         db = SessionLocal()
@@ -33,13 +49,28 @@ def callback(ch, method, _properties, body):
                 amount=event.amount,
                 transaction_type=event.transaction_type,
             )
-            logger.info("Successfully processed transaction %s", transaction.id)
+            logger.info(
+                "transaction_processing_successful",
+                transaction_id=transaction.id,
+                account_id=event.account_id,
+                correlation_id=correlation_id,
+            )
 
             # Acknowledge message
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except (ValueError, RuntimeError) as e:
-            logger.error("Error processing transaction: %s", str(e))
+            logger.error(
+                "transaction_processing_failed",
+                account_id=event.account_id,
+                account_number=event.account_number,
+                amount=str(event.amount),
+                transaction_type=event.transaction_type,
+                correlation_id=correlation_id,
+                error=str(e),
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             # In production, you might want to use a dead letter queue
             # For now, we'll reject and requeue
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
@@ -47,11 +78,26 @@ def callback(ch, method, _properties, body):
             db.close()
 
     except json.JSONDecodeError as e:
-        logger.error("Failed to parse message: %s", str(e))
+        logger.error(
+            "message_parse_failed",
+            correlation_id=correlation_id,
+            error=str(e),
+            error_type=type(e).__name__,
+            exc_info=True,
+        )
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
     except (ConnectionError, RuntimeError) as e:
-        logger.error("Unexpected error in callback: %s", str(e))
+        logger.error(
+            "unexpected_callback_error",
+            correlation_id=correlation_id,
+            error=str(e),
+            error_type=type(e).__name__,
+            exc_info=True,
+        )
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+    finally:
+        # Clear context vars after processing
+        structlog.contextvars.clear_contextvars()
 
 
 def start_consumer():
@@ -82,16 +128,26 @@ def start_consumer():
         # Set up consumer
         channel.basic_consume(queue=rabbitmq_queue, on_message_callback=callback)
 
-        logger.info("Started consuming messages from queue: %s", rabbitmq_queue)
-        logger.info("Waiting for messages. To exit press CTRL+C")
+        logger.info(
+            "rabbitmq_consumer_started",
+            queue=rabbitmq_queue,
+            host=rabbitmq_host,
+            port=rabbitmq_port,
+        )
+        logger.info("waiting_for_messages")
 
         # Start consuming
         channel.start_consuming()
 
     except KeyboardInterrupt:
-        logger.info("Stopping consumer...")
+        logger.info("rabbitmq_consumer_stopping")
         channel.stop_consuming()
         connection.close()
     except (ConnectionError, RuntimeError) as e:
-        logger.error("Error in consumer: %s", str(e))
+        logger.error(
+            "rabbitmq_consumer_error",
+            error=str(e),
+            error_type=type(e).__name__,
+            exc_info=True,
+        )
         raise
