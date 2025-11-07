@@ -33,10 +33,7 @@ jobs:
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
           echo "head_sha=${HEAD_SHA:-${GITHUB_SHA}}" >> "${GITHUB_OUTPUT}"
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Verify Docker daemon connectivity
+      - name: Verify Docker availability
         run: |
           set -euxo pipefail
           echo "Runner user: $(whoami)"
@@ -46,14 +43,20 @@ jobs:
           else
             echo "Docker socket not found at /var/run/docker.sock"
           fi
-          docker info >/tmp/docker-info.txt 2>&1 || {
-            echo "docker info failed; contents below:"
+          if ! docker info >/tmp/docker-info.txt 2>&1; then
+            echo "docker info failed; contents:"
             cat /tmp/docker-info.txt
-            echo "Attempting to show docker service status (if available)..."
-            sudo systemctl status docker || true
+            echo "Attempting to start Docker service (if available)..."
+            if command -v systemctl >/dev/null 2>&1; then
+              sudo systemctl start docker || true
+              sudo systemctl status docker || true
+            fi
             exit 1
-          }
+          fi
           cat /tmp/docker-info.txt
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
