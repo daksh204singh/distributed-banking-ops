@@ -7,10 +7,10 @@ import structlog
 
 # Add parent directory to path to import shared module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from shared.events import TransactionEvent  # pylint: disable=wrong-import-position,wrong-import-order
-from shared.logging_config import get_logger  # pylint: disable=wrong-import-position
 from app.database import SessionLocal  # pylint: disable=wrong-import-position
 from app.service import process_transaction  # pylint: disable=wrong-import-position
+from shared.events import TransactionEvent  # pylint: disable=wrong-import-position,wrong-import-order
+from shared.logging_config import get_logger  # pylint: disable=wrong-import-position
 
 logger = get_logger(__name__)
 
@@ -21,10 +21,10 @@ def callback(ch, method, _properties, body):
     correlation_id = "unknown"
     if _properties.headers and "correlation_id" in _properties.headers:
         correlation_id = _properties.headers["correlation_id"]
-    
+
     # Bind correlation ID to context for all logs in this callback
     structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
-    
+
     try:
         # Parse message
         message_data = json.loads(body)

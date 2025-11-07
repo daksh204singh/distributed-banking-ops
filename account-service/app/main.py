@@ -19,6 +19,7 @@ if engine is not None:
 
 app = FastAPI(title="Account Service", description="Microservice for managing bank accounts", version="1.0.0")
 
+
 # Add request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -26,7 +27,7 @@ async def log_requests(request: Request, call_next):
     # Generate or extract correlation ID
     correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
     structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
-    
+
     logger.info(
         "request_started",
         method=request.method,
@@ -34,12 +35,12 @@ async def log_requests(request: Request, call_next):
         query_params=str(request.query_params) if request.query_params else None,
         client_ip=request.client.host if request.client else None,
     )
-    
+
     start_time = time.time()
     try:
         response = await call_next(request)
         process_time = time.time() - start_time
-        
+
         logger.info(
             "request_completed",
             method=request.method,
@@ -47,7 +48,7 @@ async def log_requests(request: Request, call_next):
             status_code=response.status_code,
             process_time_ms=round(process_time * 1000, 2),
         )
-        
+
         # Add correlation ID to response headers
         response.headers["X-Correlation-ID"] = correlation_id
         return response
@@ -63,6 +64,7 @@ async def log_requests(request: Request, call_next):
             exc_info=True,
         )
         raise
+
 
 app.include_router(router)
 

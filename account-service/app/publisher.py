@@ -10,7 +10,7 @@ import structlog
 # Add parent directory to path to import shared module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from shared.events import TransactionEvent  # pylint: disable=wrong-import-position
-from shared.logging_config import get_logger
+from shared.logging_config import get_logger  # pylint: disable=wrong-import-position
 
 logger = get_logger(__name__)
 
@@ -36,7 +36,7 @@ def publish_transaction_event(account_id: int, account_number: str, amount: Deci
     # Get correlation ID from context if available
     context = structlog.contextvars.get_contextvars()
     correlation_id = context.get("correlation_id", "unknown")
-    
+
     try:
         rabbitmq_queue = os.getenv("RABBITMQ_QUEUE")
         if not rabbitmq_queue:

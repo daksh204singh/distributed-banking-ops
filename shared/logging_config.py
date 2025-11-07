@@ -1,8 +1,8 @@
 """Structured logging configuration for microservices."""
+
 import logging
 import os
 import sys
-from typing import Any
 
 import structlog
 from structlog.stdlib import LoggerFactory
@@ -11,7 +11,7 @@ from structlog.stdlib import LoggerFactory
 def configure_logging(service_name: str, log_level: str = None) -> None:
     """
     Configure structured logging for a microservice.
-    
+
     Args:
         service_name: Name of the service (e.g., 'account-service')
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
@@ -20,14 +20,14 @@ def configure_logging(service_name: str, log_level: str = None) -> None:
     # Get log level from parameter, environment variable, or default to INFO
     if log_level is None:
         log_level = os.getenv("LOG_LEVEL", "INFO")
-    
+
     # Configure standard library logging
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
         level=getattr(logging, log_level.upper()),
     )
-    
+
     # Configure structlog
     structlog.configure(
         processors=[
@@ -47,7 +47,7 @@ def configure_logging(service_name: str, log_level: str = None) -> None:
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
-    
+
     # Add service name to all logs via context
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(service=service_name)
@@ -56,4 +56,3 @@ def configure_logging(service_name: str, log_level: str = None) -> None:
 def get_logger(name: str = None) -> structlog.stdlib.BoundLogger:
     """Get a structured logger instance."""
     return structlog.get_logger(name)
-
