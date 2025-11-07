@@ -1,0 +1,10 @@
+---
+- name: Deploy distributed banking services
+  hosts: banking
+  become: true
+  vars:
+    account_service_image: "{{ dockerhub_username }}/account-service:{{ image_tag }}"
+    transaction_service_image: "{{ dockerhub_username }}/transaction-service:{{ image_tag }}"
+  roles:
+    - docker
+    - banking_app
