@@ -1,11 +1,11 @@
-import logging
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
 from app.models import Transaction
+from shared.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Fraud detection threshold (simple example)
 FRAUD_THRESHOLD = Decimal("10000.00")
@@ -21,7 +21,15 @@ def process_transaction(db: Session, account_id: int, account_number: str, amoun
     if amount > FRAUD_THRESHOLD:
         fraud_detected = True
         notes = f"Large transaction detected: {amount} {transaction_type}"
-        logger.warning("Fraud alert: Large transaction of %s for account %s", amount, account_id)
+        logger.warning(
+            "fraud_alert",
+            reason="large_transaction_detected",
+            account_id=account_id,
+            account_number=account_number,
+            amount=str(amount),
+            transaction_type=transaction_type,
+            threshold=str(FRAUD_THRESHOLD),
+        )
 
     # Create transaction record
     transaction = Transaction(
@@ -37,7 +45,15 @@ def process_transaction(db: Session, account_id: int, account_number: str, amoun
     db.commit()
     db.refresh(transaction)
 
-    logger.info("Processed transaction %s: %s of %s for account %s", transaction.id, transaction_type, amount, account_id)
+    logger.info(
+        "transaction_processed",
+        transaction_id=transaction.id,
+        account_id=account_id,
+        account_number=account_number,
+        amount=str(amount),
+        transaction_type=transaction_type,
+        fraud_detected=fraud_detected,
+    )
 
     return transaction
 

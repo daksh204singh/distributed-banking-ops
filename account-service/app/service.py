@@ -1,12 +1,12 @@
-import logging
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
 from app import publisher
 from app.models import Account
+from shared.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def create_account(db: Session, account_number: str):
@@ -15,7 +15,12 @@ def create_account(db: Session, account_number: str):
     db.add(account)
     db.commit()
     db.refresh(account)
-    logger.info("Created account %s with number %s", account.id, account_number)
+    logger.info(
+        "account_created",
+        account_id=account.id,
+        account_number=account_number,
+        initial_balance=str(account.balance),
+    )
     return account
 
 
@@ -33,8 +38,10 @@ def deposit(db: Session, account_id: int, amount: Decimal):
     """Deposit funds to account"""
     account = get_account(db, account_id)
     if not account:
+        logger.warning("deposit_failed", reason="account_not_found", account_id=account_id)
         return None
 
+    old_balance = account.balance
     account.balance += amount
     db.commit()
     db.refresh(account)
@@ -44,10 +51,26 @@ def deposit(db: Session, account_id: int, amount: Decimal):
         publisher.publish_transaction_event(
             account_id=account.id, account_number=account.account_number, amount=amount, transaction_type="deposit"
         )
+        logger.info(
+            "deposit_successful",
+            account_id=account_id,
+            account_number=account.account_number,
+            amount=str(amount),
+            old_balance=str(old_balance),
+            new_balance=str(account.balance),
+        )
     except (ConnectionError, ValueError, RuntimeError) as e:
-        logger.error("Failed to publish deposit event: %s", str(e))
+        logger.error(
+            "deposit_event_publish_failed",
+            account_id=account_id,
+            account_number=account.account_number,
+            amount=str(amount),
+            old_balance=str(old_balance),
+            new_balance=str(account.balance),
+            error=str(e),
+            error_type=type(e).__name__,
+        )
 
-    logger.info("Deposited %s to account %s", amount, account_id)
     return account
 
 
@@ -55,11 +78,21 @@ def withdraw(db: Session, account_id: int, amount: Decimal):
     """Withdraw funds from account"""
     account = get_account(db, account_id)
     if not account:
+        logger.warning("withdraw_failed", reason="account_not_found", account_id=account_id)
         return None
 
     if account.balance < amount:
+        logger.warning(
+            "withdraw_failed",
+            reason="insufficient_funds",
+            account_id=account_id,
+            account_number=account.account_number,
+            requested_amount=str(amount),
+            current_balance=str(account.balance),
+        )
         raise ValueError("Insufficient funds")
 
+    old_balance = account.balance
     account.balance -= amount
     db.commit()
     db.refresh(account)
@@ -69,8 +102,24 @@ def withdraw(db: Session, account_id: int, amount: Decimal):
         publisher.publish_transaction_event(
             account_id=account.id, account_number=account.account_number, amount=amount, transaction_type="withdraw"
         )
+        logger.info(
+            "withdraw_successful",
+            account_id=account_id,
+            account_number=account.account_number,
+            amount=str(amount),
+            old_balance=str(old_balance),
+            new_balance=str(account.balance),
+        )
     except (ConnectionError, ValueError, RuntimeError) as e:
-        logger.error("Failed to publish withdraw event: %s", str(e))
+        logger.error(
+            "withdraw_event_publish_failed",
+            account_id=account_id,
+            account_number=account.account_number,
+            amount=str(amount),
+            old_balance=str(old_balance),
+            new_balance=str(account.balance),
+            error=str(e),
+            error_type=type(e).__name__,
+        )
 
-    logger.info("Withdrew %s from account %s", amount, account_id)
     return account

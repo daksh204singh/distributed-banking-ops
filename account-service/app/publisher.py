@@ -1,17 +1,18 @@
 import json
-import logging
 import os
 import sys
 from datetime import datetime
 from decimal import Decimal
 
 import pika
+import structlog
 
 # Add parent directory to path to import shared module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from shared.events import TransactionEvent  # pylint: disable=wrong-import-position
+from shared.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def get_connection():
@@ -32,6 +33,10 @@ def get_connection():
 
 def publish_transaction_event(account_id: int, account_number: str, amount: Decimal, transaction_type: str):
     """Publish transaction event to RabbitMQ"""
+    # Get correlation ID from context if available
+    context = structlog.contextvars.get_contextvars()
+    correlation_id = context.get("correlation_id", "unknown")
+    
     try:
         rabbitmq_queue = os.getenv("RABBITMQ_QUEUE")
         if not rabbitmq_queue:
@@ -60,13 +65,32 @@ def publish_transaction_event(account_id: int, account_number: str, amount: Deci
             body=message,
             properties=pika.BasicProperties(
                 delivery_mode=2,  # Make message persistent
+                headers={"correlation_id": correlation_id},  # Add correlation ID for tracing
             ),
         )
 
-        logger.info("Published transaction event: %s for account %s", transaction_type, account_id)
+        logger.info(
+            "transaction_event_published",
+            transaction_type=transaction_type,
+            account_id=account_id,
+            account_number=account_number,
+            amount=str(amount),
+            queue=rabbitmq_queue,
+            correlation_id=correlation_id,
+        )
         connection.close()
 
     except (ConnectionError, ValueError, RuntimeError) as e:
-        logger.error("Failed to publish transaction event: %s", str(e))
+        logger.error(
+            "transaction_event_publish_failed",
+            transaction_type=transaction_type,
+            account_id=account_id,
+            account_number=account_number,
+            amount=str(amount),
+            correlation_id=correlation_id,
+            error=str(e),
+            error_type=type(e).__name__,
+            exc_info=True,
+        )
         # In production, you might want to raise or handle this differently
         raise
