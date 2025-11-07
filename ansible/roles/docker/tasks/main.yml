@@ -1,0 +1,45 @@
+---
+- name: Refresh apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_facts.pkg_mgr == 'apt'
+
+- name: Ensure Python and curl packages are present
+  ansible.builtin.package:
+    name:
+      - python3
+      - python3-pip
+      - curl
+    state: present
+
+- name: Check for Docker Engine on target host
+  ansible.builtin.command: docker --version
+  register: docker_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Docker Engine when missing
+  block:
+    - name: Download Docker installation script
+      ansible.builtin.get_url:
+        url: https://get.docker.com
+        dest: /tmp/get-docker.sh
+        mode: "0755"
+
+    - name: Run Docker installation script
+      ansible.builtin.command: /tmp/get-docker.sh
+      args:
+        creates: /usr/bin/docker
+  when: docker_check.rc != 0
+
+- name: Ensure Docker service is enabled and running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Ensure python docker module is present
+  ansible.builtin.pip:
+    name: docker
+    executable: pip3
