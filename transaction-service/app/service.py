@@ -2,8 +2,8 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.models import Transaction
 from shared.logging_config import get_logger
+from app.models import Transaction
 
 logger = get_logger(__name__)
 

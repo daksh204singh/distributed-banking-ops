@@ -7,10 +7,10 @@ import structlog
 
 # Add parent directory to path to import shared module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from app.database import SessionLocal  # pylint: disable=wrong-import-position
-from app.service import process_transaction  # pylint: disable=wrong-import-position
 from shared.events import TransactionEvent  # pylint: disable=wrong-import-position,wrong-import-order
 from shared.logging_config import get_logger  # pylint: disable=wrong-import-position
+from app.database import SessionLocal  # pylint: disable=wrong-import-position
+from app.service import process_transaction  # pylint: disable=wrong-import-position
 
 logger = get_logger(__name__)
 
