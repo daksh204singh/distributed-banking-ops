@@ -36,6 +36,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Verify Docker daemon connectivity
+        run: |
+          set -euxo pipefail
+          echo "Runner user: $(whoami)"
+          id
+          if [ -S /var/run/docker.sock ]; then
+            ls -l /var/run/docker.sock
+          else
+            echo "Docker socket not found at /var/run/docker.sock"
+          fi
+          docker info >/tmp/docker-info.txt 2>&1 || {
+            echo "docker info failed; contents below:"
+            cat /tmp/docker-info.txt
+            echo "Attempting to show docker service status (if available)..."
+            sudo systemctl status docker || true
+            exit 1
+          }
+          cat /tmp/docker-info.txt
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
