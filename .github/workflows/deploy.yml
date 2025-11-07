@@ -74,21 +74,23 @@ jobs:
           ansible-galaxy collection install community.docker community.general ansible.posix
 
       - name: Override inventory host from secrets
-        if: ${{ secrets.ANSIBLE_HOST != '' }}
+        env:
+          TARGET_HOST: ${{ secrets.ANSIBLE_HOST }}
         run: |
-          cat <<'EOF' > ansible/inventory/hosts.ini
-          [banking]
-          banking-prod ansible_host=${{ secrets.ANSIBLE_HOST }}
-          EOF
+          if [ -n "$TARGET_HOST" ]; then
+            printf "[banking]\nbanking-prod ansible_host=%s\n" "$TARGET_HOST" > ansible/inventory/hosts.ini
+          fi
 
       - name: Configure SSH access
         env:
-          TARGET_HOST: ${{ secrets.ANSIBLE_HOST != '' && secrets.ANSIBLE_HOST || 'YOUR_PRODUCTION_HOST_IP' }}
+          TARGET_HOST: ${{ secrets.ANSIBLE_HOST }}
+          PRIVATE_KEY: ${{ secrets.ANSIBLE_PRIVATE_KEY }}
         run: |
+          HOST="${TARGET_HOST:-YOUR_PRODUCTION_HOST_IP}"
           mkdir -p ~/.ssh
-          echo "${{ secrets.ANSIBLE_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${TARGET_HOST}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts
 
       - name: Run Ansible deployment
         env:
