@@ -2,8 +2,8 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from shared.logging_config import get_logger
 from app.models import Transaction
+from shared.logging_config import get_logger, mask_account_number, mask_amount
 
 logger = get_logger(__name__)
 
@@ -25,10 +25,10 @@ def process_transaction(db: Session, account_id: int, account_number: str, amoun
             "fraud_alert",
             reason="large_transaction_detected",
             account_id=account_id,
-            account_number=account_number,
-            amount=str(amount),
+            account_number=mask_account_number(account_number),
+            amount=mask_amount(str(amount)),
             transaction_type=transaction_type,
-            threshold=str(FRAUD_THRESHOLD),
+            threshold=mask_amount(str(FRAUD_THRESHOLD)),
         )
 
     # Create transaction record
@@ -49,8 +49,8 @@ def process_transaction(db: Session, account_id: int, account_number: str, amoun
         "transaction_processed",
         transaction_id=transaction.id,
         account_id=account_id,
-        account_number=account_number,
-        amount=str(amount),
+        account_number=mask_account_number(account_number),
+        amount=mask_amount(str(amount)),
         transaction_type=transaction_type,
         fraud_detected=fraud_detected,
     )

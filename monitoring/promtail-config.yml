@@ -1,0 +1,115 @@
+# Promtail configuration for scraping Docker container logs
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Application services (JSON logs from structlog)
+  - job_name: application-services
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # Only scrape application service containers
+      - source_labels: [__meta_docker_container_name]
+        regex: '.*(account-service|transaction-service).*'
+        action: keep
+      # Extract container name as label
+      - source_labels: [__meta_docker_container_name]
+        target_label: container
+        regex: '/(.*)'
+      # Extract container ID (first 12 chars)
+      - source_labels: [__meta_docker_container_id]
+        target_label: container_id
+        regex: '(.{12}).*'
+      # Add job label
+      - target_label: job
+        replacement: application-logs
+
+    # Pipeline stages for JSON log processing
+    pipeline_stages:
+      # Parse JSON logs (from structlog)
+      - json:
+          expressions:
+            output: message
+            level: level
+            service: service
+            account_number: account_number
+            account_id: account_id
+            old_balance: old_balance
+            new_balance: new_balance
+            current_balance: current_balance
+            amount: amount
+            error: error
+            query_params: query_params
+            correlation_id: correlation_id
+            timestamp: timestamp
+            logger: logger
+            event: event
+
+  # Infrastructure services (RabbitMQ, Postgres - plain text logs)
+  - job_name: infrastructure-services
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # Only scrape infrastructure service containers
+      - source_labels: [__meta_docker_container_name]
+        regex: '.*(rabbitmq|postgres).*'
+        action: keep
+      # Extract container name as label
+      - source_labels: [__meta_docker_container_name]
+        target_label: container
+        regex: '/(.*)'
+      # Extract container ID (first 12 chars)
+      - source_labels: [__meta_docker_container_id]
+        target_label: container_id
+        regex: '(.{12}).*'
+      # Add job label
+      - target_label: job
+        replacement: infrastructure-logs
+
+    # Pipeline stages for plain text log processing
+    pipeline_stages:
+      # Parse RabbitMQ logs
+      # Format: "2024-01-01 12:00:00.123 [info] <0.123.0> Message here"
+      - regex:
+          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+\[(?P<level>\w+)\]\s+(?P<message>.*)$'
+          source: message
+          if: 'container=~".*rabbitmq.*"'
+      
+      # Extract RabbitMQ process ID (Erlang process like <0.123.0>)
+      - regex:
+          expression: '<(?P<process_id>\d+\.\d+\.\d+)>'
+          source: message
+          if: 'container=~".*rabbitmq.*"'
+      
+      # Parse Postgres logs
+      # Format: "2024-01-01 12:00:00.123 UTC [123] LOG: message"
+      # Or: "2024-01-01 12:00:00.123 UTC [123] ERROR: message"
+      - regex:
+          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+\w+\s+\[(?P<pid>\d+)\]\s+(?P<level>\w+):\s+(?P<message>.*)$'
+          source: message
+          if: 'container=~".*postgres.*"'
+      
+      # Extract Postgres statement if present (STATEMENT: ...)
+      - regex:
+          expression: 'STATEMENT:\s+(?P<statement>.*)'
+          source: message
+          if: 'container=~".*postgres.*"'
+      
+      # Add service label based on container name
+      - template:
+          source: service
+          template: '{{ if eq .container "banking-rabbitmq" }}rabbitmq{{ else if eq .container "banking-postgres" }}postgres{{ else }}{{ .container }}{{ end }}'
+      
+      # Normalize level field (convert Postgres LOG to info, etc.)
+      - template:
+          source: level
+          template: '{{ if .level }}{{ if eq .level "LOG" }}info{{ else if eq .level "ERROR" }}error{{ else if eq .level "WARNING" }}warning{{ else }}{{ lower .level }}{{ end }}{{ else }}info{{ end }}'
