@@ -2,11 +2,11 @@ import json
 import os
 import sys
 
-import pika
-import structlog
-
 # Add parent directory to path to import shared module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+
+import pika
+import structlog
 
 from shared.events import TransactionEvent
 from shared.logging_config import get_logger, mask_account_number, mask_amount
