@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from shared.logging_config import get_logger
+from shared.logging_config import get_logger, mask_account_number, mask_balance, mask_amount
 from app import publisher
 from app.models import Account
 
@@ -18,8 +18,8 @@ def create_account(db: Session, account_number: str):
     logger.info(
         "account_created",
         account_id=account.id,
-        account_number=account_number,
-        initial_balance=str(account.balance),
+        account_number=mask_account_number(account_number),
+        initial_balance=mask_balance(str(account.balance)),
     )
     return account
 
@@ -54,19 +54,19 @@ def deposit(db: Session, account_id: int, amount: Decimal):
         logger.info(
             "deposit_successful",
             account_id=account_id,
-            account_number=account.account_number,
-            amount=str(amount),
-            old_balance=str(old_balance),
-            new_balance=str(account.balance),
+            account_number=mask_account_number(account.account_number),
+            amount=mask_amount(str(amount)),
+            old_balance=mask_balance(str(old_balance)),
+            new_balance=mask_balance(str(account.balance)),
         )
     except (ConnectionError, ValueError, RuntimeError) as e:
         logger.error(
             "deposit_event_publish_failed",
             account_id=account_id,
-            account_number=account.account_number,
-            amount=str(amount),
-            old_balance=str(old_balance),
-            new_balance=str(account.balance),
+            account_number=mask_account_number(account.account_number),
+            amount=mask_amount(str(amount)),
+            old_balance=mask_balance(str(old_balance)),
+            new_balance=mask_balance(str(account.balance)),
             error=str(e),
             error_type=type(e).__name__,
         )
@@ -86,9 +86,9 @@ def withdraw(db: Session, account_id: int, amount: Decimal):
             "withdraw_failed",
             reason="insufficient_funds",
             account_id=account_id,
-            account_number=account.account_number,
-            requested_amount=str(amount),
-            current_balance=str(account.balance),
+            account_number=mask_account_number(account.account_number),
+            requested_amount=mask_amount(str(amount)),
+            current_balance=mask_balance(str(account.balance)),
         )
         raise ValueError("Insufficient funds")
 
@@ -105,19 +105,19 @@ def withdraw(db: Session, account_id: int, amount: Decimal):
         logger.info(
             "withdraw_successful",
             account_id=account_id,
-            account_number=account.account_number,
-            amount=str(amount),
-            old_balance=str(old_balance),
-            new_balance=str(account.balance),
+            account_number=mask_account_number(account.account_number),
+            amount=mask_amount(str(amount)),
+            old_balance=mask_balance(str(old_balance)),
+            new_balance=mask_balance(str(account.balance)),
         )
     except (ConnectionError, ValueError, RuntimeError) as e:
         logger.error(
             "withdraw_event_publish_failed",
             account_id=account_id,
-            account_number=account.account_number,
-            amount=str(amount),
-            old_balance=str(old_balance),
-            new_balance=str(account.balance),
+            account_number=mask_account_number(account.account_number),
+            amount=mask_amount(str(amount)),
+            old_balance=mask_balance(str(old_balance)),
+            new_balance=mask_balance(str(account.balance)),
             error=str(e),
             error_type=type(e).__name__,
         )

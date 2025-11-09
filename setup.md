@@ -8,12 +8,14 @@ This project implements a microservices banking system with two services: Accoun
 - **Transaction Service** (Port 8001): Processes transaction events asynchronously and maintains audit trail
 - **PostgreSQL**: Shared database for both services
 - **RabbitMQ**: Message queue for event-driven communication
+- **Loki**: Log aggregation system for centralized log storage and querying
+- **Promtail**: Log collection agent that scrapes container logs and sends them to Loki
 
 ## Prerequisites
 
 - Docker and Docker Compose installed
 - At least 4GB of available RAM
-- Ports 5432, 5672, 8000, 8001, and 15672 available
+- Ports 5432, 5672, 8000, 8001, 15672, and 3100 available
 
 ## Quick Start
 
@@ -33,6 +35,8 @@ This project implements a microservices banking system with two services: Accoun
    - Start RabbitMQ broker
    - Start Account Service on port 8000
    - Start Transaction Service on port 8001
+   - Start Loki log aggregation system on port 3100
+   - Start Promtail log collector (scrapes container logs)
 
 3. **Verify services are running**:
    ```bash
@@ -121,6 +125,57 @@ curl "http://localhost:8001/transactions?skip=0&limit=10"
    ```
 
 ## Monitoring
+
+### Loki - Centralized Logging
+
+Loki aggregates logs from all services and provides a centralized log querying interface.
+
+**Access Loki API:**
+- Loki API: http://localhost:3100
+- Health check: http://localhost:3100/ready
+
+**Query Logs:**
+```bash
+# Query all application logs
+curl -G "http://localhost:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={job="application-logs"}' \
+  --data-urlencode 'limit=10' \
+  --data-urlencode "start=$(($(date -u +%s) - 3600))000000000" \
+  --data-urlencode "end=$(date -u +%s)000000000" | jq
+
+# Query account service logs
+curl -G "http://localhost:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={container="banking-account-service"}' \
+  --data-urlencode 'limit=10' \
+  --data-urlencode "start=$(($(date -u +%s) - 3600))000000000" \
+  --data-urlencode "end=$(date -u +%s)000000000" | jq
+
+# Query infrastructure logs (RabbitMQ, Postgres)
+curl -G "http://localhost:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={job="infrastructure-logs"}' \
+  --data-urlencode 'limit=10' \
+  --data-urlencode "start=$(($(date -u +%s) - 3600))000000000" \
+  --data-urlencode "end=$(date -u +%s)000000000" | jq
+```
+
+**Log Retention:**
+
+*Docker Container Logs (Raw Logs):*
+- Max file size: 10MB per log file
+- Max number of files: 3 files per container
+- Total retention: ~30MB per container
+- Applies to: All services (account-service, transaction-service, postgres, rabbitmq)
+
+*Loki Centralized Logs:*
+- Application logs: 7 days
+- Infrastructure logs: 14 days
+- Global maximum: 30 days
+
+**Promtail Configuration:**
+- Automatically discovers and scrapes logs from all Docker containers
+- Parses JSON logs from application services
+- Parses plain text logs from infrastructure services (RabbitMQ, Postgres)
+- Configuration: `monitoring/promtail-config.yml`
 
 ### RabbitMQ Management UI
 
@@ -248,12 +303,37 @@ docker-compose down -v
   ```
 - Verify RabbitMQ queue has messages in Management UI
 
+### Logging Issues
+
+- **Check if Loki is running:**
+  ```bash
+  curl http://localhost:3100/ready
+  docker-compose logs loki
+  ```
+
+- **Check if Promtail is collecting logs:**
+  ```bash
+  docker-compose logs promtail
+  ```
+
+- **Query logs in Loki:**
+  ```bash
+  # Check available containers
+  curl -G "http://localhost:3100/loki/api/v1/label/container/values" | jq
+
+  # Check available jobs
+  curl -G "http://localhost:3100/loki/api/v1/label/job/values" | jq
+  ```
+
 ## Project Structure
 
 ```
 distributed-banking-ops/
 ├── docker-compose.yml          # Orchestration file
 ├── setup.md                    # This file
+├── monitoring/                 # Logging and monitoring configs
+│   ├── loki-config.yml        # Loki configuration with retention policies
+│   └── promtail-config.yml    # Promtail configuration for log scraping
 ├── account-service/            # Account microservice
 │   ├── Dockerfile
 │   ├── requirements.txt
@@ -277,6 +357,7 @@ distributed-banking-ops/
 │       ├── service.py         # Transaction processing
 │       └── consumer.py        # RabbitMQ consumer
 └── shared/                     # Shared utilities
-    └── events.py              # Event schemas
+    ├── events.py              # Event schemas
+    └── logging_config.py      # Structured logging configuration
 ```
 

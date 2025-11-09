@@ -1,16 +1,13 @@
 import json
 import os
-import sys
 
 import pika
 import structlog
 
-# Add parent directory to path to import shared module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from shared.events import TransactionEvent  # pylint: disable=wrong-import-position,wrong-import-order
-from shared.logging_config import get_logger  # pylint: disable=wrong-import-position
-from app.database import SessionLocal  # pylint: disable=wrong-import-position
-from app.service import process_transaction  # pylint: disable=wrong-import-position
+from shared.events import TransactionEvent
+from shared.logging_config import get_logger, mask_account_number, mask_amount
+from app.database import SessionLocal
+from app.service import process_transaction
 
 logger = get_logger(__name__)
 
@@ -34,8 +31,8 @@ def callback(ch, method, _properties, body):
             "transaction_event_received",
             transaction_type=event.transaction_type,
             account_id=event.account_id,
-            account_number=event.account_number,
-            amount=str(event.amount),
+            account_number=mask_account_number(event.account_number),
+            amount=mask_amount(str(event.amount)),
             correlation_id=correlation_id,
         )
 
@@ -63,8 +60,8 @@ def callback(ch, method, _properties, body):
             logger.error(
                 "transaction_processing_failed",
                 account_id=event.account_id,
-                account_number=event.account_number,
-                amount=str(event.amount),
+                account_number=mask_account_number(event.account_number),
+                amount=mask_amount(str(event.amount)),
                 transaction_type=event.transaction_type,
                 correlation_id=correlation_id,
                 error=str(e),
