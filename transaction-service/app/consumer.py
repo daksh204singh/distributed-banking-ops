@@ -4,10 +4,10 @@ import os
 import pika
 import structlog
 
-from app.database import SessionLocal
-from app.service import process_transaction
 from shared.events import TransactionEvent
 from shared.logging_config import get_logger, mask_account_number, mask_amount
+from app.database import SessionLocal
+from app.service import process_transaction
 
 logger = get_logger(__name__)
 
