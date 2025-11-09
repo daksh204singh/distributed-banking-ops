@@ -1,18 +1,13 @@
 import json
 import os
-import sys
 
-# Add parent directory to path to import shared module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))  # pylint: disable=wrong-import-position
+import pika
+import structlog
 
-# pylint: disable=wrong-import-position
-import pika  # noqa: E402
-import structlog  # noqa: E402
-
-from shared.events import TransactionEvent  # noqa: E402
-from shared.logging_config import get_logger, mask_account_number, mask_amount  # noqa: E402
-from app.database import SessionLocal  # noqa: E402
-from app.service import process_transaction  # noqa: E402
+from app.database import SessionLocal
+from app.service import process_transaction
+from shared.events import TransactionEvent
+from shared.logging_config import get_logger, mask_account_number, mask_amount
 
 logger = get_logger(__name__)
 

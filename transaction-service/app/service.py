@@ -2,8 +2,8 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from shared.logging_config import get_logger, mask_account_number, mask_amount
 from app.models import Transaction
+from shared.logging_config import get_logger, mask_account_number, mask_amount
 
 logger = get_logger(__name__)
 

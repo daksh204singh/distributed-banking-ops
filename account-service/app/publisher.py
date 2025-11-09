@@ -1,16 +1,13 @@
 import json
 import os
-import sys
 from datetime import datetime
 from decimal import Decimal
 
 import pika
 import structlog
 
-# Add parent directory to path to import shared module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from shared.events import TransactionEvent  # pylint: disable=wrong-import-position
-from shared.logging_config import get_logger  # pylint: disable=wrong-import-position
+from shared.events import TransactionEvent
+from shared.logging_config import get_logger
 
 logger = get_logger(__name__)
 
