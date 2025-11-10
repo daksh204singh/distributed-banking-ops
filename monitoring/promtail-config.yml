@@ -8,6 +8,8 @@ positions:
 
 clients:
   - url: http://banking-loki:3100/loki/api/v1/push
+    external_labels:
+      promtail_instance: docker
 
 scrape_configs:
   # Application services (JSON logs from structlog)
