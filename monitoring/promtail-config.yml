@@ -20,10 +20,16 @@ scrape_configs:
       - source_labels: [__meta_docker_container_name]
         regex: '.*(account-service|transaction-service).*'
         action: keep
+      # Read from the container's JSON log file
+      - source_labels: [__meta_docker_container_log_path]
+        target_label: __path__
       # Extract container name as label
       - source_labels: [__meta_docker_container_name]
         target_label: container
         regex: '/(.*)'
+      # Add docker log stream (stdout/stderr)
+      - source_labels: [__meta_docker_container_log_stream]
+        target_label: stream
       # Extract container ID (first 12 chars)
       - source_labels: [__meta_docker_container_id]
         target_label: container_id
@@ -63,10 +69,16 @@ scrape_configs:
       - source_labels: [__meta_docker_container_name]
         regex: '.*(rabbitmq|postgres).*'
         action: keep
+      # Read from the container's JSON log file
+      - source_labels: [__meta_docker_container_log_path]
+        target_label: __path__
       # Extract container name as label
       - source_labels: [__meta_docker_container_name]
         target_label: container
         regex: '/(.*)'
+      # Add docker log stream (stdout/stderr)
+      - source_labels: [__meta_docker_container_log_stream]
+        target_label: stream
       # Extract container ID (first 12 chars)
       - source_labels: [__meta_docker_container_id]
         target_label: container_id
