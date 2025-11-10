@@ -82,14 +82,14 @@
 
 - name: Copy Loki configuration file
   ansible.builtin.copy:
-    src: "monitoring/loki-config.yml"
+    src: "{{ playbook_dir }}/../../monitoring/loki-config.yml"
     dest: "{{ loki_config_file }}"
     mode: '0644'
     remote_src: false
 
 - name: Copy Promtail configuration file
   ansible.builtin.copy:
-    src: "monitoring/promtail-config.yml"
+    src: "{{ playbook_dir }}/../../monitoring/promtail-config.yml"
     dest: "{{ promtail_config_file }}"
     mode: '0644'
     remote_src: false
