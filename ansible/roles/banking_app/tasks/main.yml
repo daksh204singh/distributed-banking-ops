@@ -1,0 +1,151 @@
+---
+- name: Validate required deployment variables are provided
+  ansible.builtin.assert:
+    that:
+      - dockerhub_username is defined
+      - dockerhub_username | length > 0
+      - dockerhub_password is defined
+      - dockerhub_password | length > 0
+      - account_service_image | length > 0
+      - transaction_service_image | length > 0
+    fail_msg: >
+      Docker Hub credentials and image tags must be supplied via extra-vars or group vars.
+
+- name: Authenticate with Docker Hub
+  community.docker.docker_login:
+    username: "{{ dockerhub_username }}"
+    password: "{{ dockerhub_password }}"
+    reauthorize: true
+
+- name: Ensure Docker network exists
+  community.docker.docker_network:
+    name: "{{ docker_network_name }}"
+    state: present
+
+- name: Ensure persistent volumes exist
+  community.docker.docker_volume:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - "{{ postgres_volume_name }}"
+    - "{{ rabbitmq_volume_name }}"
+
+- name: Prepare list of TCP ports to open
+  ansible.builtin.set_fact:
+    banking_firewall_ports: "{{ firewall_tcp_ports | map('string') | list | unique }}"
+  when: firewall_tcp_ports | length > 0
+
+- name: Check if UFW is available
+  ansible.builtin.stat:
+    path: /usr/sbin/ufw
+  register: ufw_binary
+  when: banking_firewall_ports is defined and banking_firewall_ports | length > 0
+
+- name: Allow required ports via UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop: "{{ banking_firewall_ports }}"
+  when:
+    - banking_firewall_ports is defined
+    - banking_firewall_ports | length > 0
+    - ufw_binary is defined
+    - ufw_binary.stat.exists
+
+- name: Check if firewalld is running
+  ansible.builtin.command: firewall-cmd --state
+  register: firewalld_state
+  changed_when: false
+  failed_when: false
+  when: banking_firewall_ports is defined and banking_firewall_ports | length > 0
+
+- name: Ensure required ports are open in firewalld
+  ansible.posix.firewalld:
+    port: "{{ item }}/tcp"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: "{{ banking_firewall_ports }}"
+  when:
+    - banking_firewall_ports is defined
+    - banking_firewall_ports | length > 0
+    - firewalld_state is defined
+    - firewalld_state.rc == 0
+
+- name: Encode Postgres credentials for URLs
+  ansible.builtin.set_fact:
+    postgres_user_url: "{{ postgres_user | urlencode }}"
+    postgres_password_url: "{{ postgres_password | urlencode }}"
+
+- name: Run Postgres database container
+  community.docker.docker_container:
+    name: "{{ postgres_container_name }}"
+    image: "{{ postgres_image }}"
+    restart_policy: unless-stopped
+    state: started
+    env:
+      POSTGRES_USER: "{{ postgres_user }}"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+      POSTGRES_DB: "{{ postgres_db }}"
+    volumes:
+      - "{{ postgres_volume_name }}:/var/lib/postgresql/data"
+    networks:
+      - name: "{{ docker_network_name }}"
+
+- name: Run RabbitMQ container
+  community.docker.docker_container:
+    name: "{{ rabbitmq_container_name }}"
+    image: "{{ rabbitmq_image }}"
+    restart_policy: unless-stopped
+    state: started
+    env:
+      RABBITMQ_DEFAULT_USER: "{{ rabbitmq_user }}"
+      RABBITMQ_DEFAULT_PASS: "{{ rabbitmq_password }}"
+    volumes:
+      - "{{ rabbitmq_volume_name }}:/var/lib/rabbitmq"
+    networks:
+      - name: "{{ docker_network_name }}"
+    published_ports:
+      - "{{ rabbitmq_port }}:{{ rabbitmq_port }}"
+      - "{{ rabbitmq_management_port }}:{{ rabbitmq_management_port }}"
+
+- name: Run account service container
+  community.docker.docker_container:
+    name: "{{ account_service_container_name }}"
+    image: "{{ account_service_image }}"
+    restart_policy: unless-stopped
+    state: started
+    pull: true
+    recreate: true
+    env:
+      DATABASE_URL: "postgresql://{{ postgres_user_url }}:{{ postgres_password_url }}@{{ postgres_container_name }}:5432/{{ postgres_db }}"
+      RABBITMQ_HOST: "{{ rabbitmq_container_name }}"
+      RABBITMQ_PORT: "{{ rabbitmq_port }}"
+      RABBITMQ_USER: "{{ rabbitmq_user }}"
+      RABBITMQ_PASSWORD: "{{ rabbitmq_password }}"
+      RABBITMQ_QUEUE: "{{ rabbitmq_queue }}"
+    networks:
+      - name: "{{ docker_network_name }}"
+    published_ports:
+      - "{{ account_service_port }}:8000"
+
+- name: Run transaction service container
+  community.docker.docker_container:
+    name: "{{ transaction_service_container_name }}"
+    image: "{{ transaction_service_image }}"
+    restart_policy: unless-stopped
+    state: started
+    pull: true
+    recreate: true
+    env:
+      DATABASE_URL: "postgresql://{{ postgres_user_url }}:{{ postgres_password_url }}@{{ postgres_container_name }}:5432/{{ postgres_db }}"
+      RABBITMQ_HOST: "{{ rabbitmq_container_name }}"
+      RABBITMQ_PORT: "{{ rabbitmq_port }}"
+      RABBITMQ_USER: "{{ rabbitmq_user }}"
+      RABBITMQ_PASSWORD: "{{ rabbitmq_password }}"
+      RABBITMQ_QUEUE: "{{ rabbitmq_queue }}"
+    networks:
+      - name: "{{ docker_network_name }}"
+    published_ports:
+      - "{{ transaction_service_port }}:8001"
