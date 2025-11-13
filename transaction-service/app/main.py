@@ -4,11 +4,13 @@ import uuid
 
 import structlog
 from fastapi import FastAPI, Request
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from shared.logging_config import configure_logging, get_logger
 from app.consumer import start_consumer
 from app.database import Base, engine
 from app.router import router
+from shared.prometheus.error_metrics import register_error_metrics
 
 # Configure structured logging
 configure_logging(service_name="transaction-service")
@@ -23,6 +25,10 @@ app = FastAPI(
     title="Transaction Service", description="Microservice for processing and auditing transactions", version="1.0.0"
 )
 
+# Add Prometheus instrumentation
+Instrumentator().instrument(app).expose(app)
+
+register_error_metrics(app)
 
 # Add request logging middleware
 @app.middleware("http")

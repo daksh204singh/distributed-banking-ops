@@ -15,12 +15,15 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 Base = declarative_base()
 
+from shared.prometheus.db_metrics import setup_db_metrics
+
 # Lazy initialization - only create engine if DATABASE_URL is set
 engine = None
 SessionLocal = None
 
 if DATABASE_URL:
     engine = create_engine(DATABASE_URL)
+    setup_db_metrics(engine)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
