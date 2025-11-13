@@ -23,5 +23,3 @@ def register_error_metrics(app: FastAPI) -> None:
             ).inc()
 
         return response
-
-

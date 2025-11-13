@@ -55,5 +55,3 @@ def record_consume(queue: str, status: str, duration: float) -> None:
     normalized_status = status or ""
     MESSAGES_CONSUMED_TOTAL.labels(queue=normalized_queue, status=normalized_status).inc()
     MESSAGE_PROCESSING_DURATION.labels(queue=normalized_queue, status=normalized_status).observe(max(duration, 0))
-
-

@@ -32,6 +32,7 @@ register_rabbitmq_metrics(
     routing_keys=[os.getenv("RABBITMQ_QUEUE", "")],
 )
 
+
 # Add request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):

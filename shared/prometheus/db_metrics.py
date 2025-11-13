@@ -42,5 +42,3 @@ def setup_db_metrics(engine: Engine) -> None:
     @event.listens_for(engine, "close")
     def close(dbapi_connection, connection_record):  # pylint: disable=unused-argument
         CONNECTIONS_IN_USE.dec()
-
-

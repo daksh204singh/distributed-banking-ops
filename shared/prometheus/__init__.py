@@ -7,4 +7,3 @@ from .rabbit_metrics import (  # noqa: F401
     record_publish,
     register_rabbitmq_metrics,
 )
-
