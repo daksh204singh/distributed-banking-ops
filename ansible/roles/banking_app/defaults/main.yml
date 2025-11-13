@@ -32,6 +32,7 @@ rabbitmq_password: "{{ lookup('env', 'RABBITMQ_PASSWORD') | default('guest', tru
 rabbitmq_queue: "{{ lookup('env', 'RABBITMQ_QUEUE') | default('transaction.created', true) }}"
 rabbitmq_management_port: "{{ lookup('env', 'RABBITMQ_MANAGEMENT_PORT') | default(15672, true) }}"
 rabbitmq_port: "{{ lookup('env', 'RABBITMQ_PORT') | default(5672, true) }}"
+rabbitmq_metrics_port: "{{ lookup('env', 'RABBITMQ_METRICS_PORT') | default(15692, true) }}"
 
 # Service ports
 account_service_port: 8000
@@ -50,4 +51,5 @@ firewall_tcp_ports:
   - "{{ transaction_service_port }}"
   - "{{ rabbitmq_port }}"
   - "{{ rabbitmq_management_port }}"
+  - "{{ rabbitmq_metrics_port }}"
   - "{{ loki_port }}"

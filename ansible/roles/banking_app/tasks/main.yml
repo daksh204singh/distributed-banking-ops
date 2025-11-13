@@ -128,6 +128,9 @@
     image: "{{ rabbitmq_image }}"
     restart_policy: unless-stopped
     state: started
+    command: >
+      sh -c "rabbitmq-plugins enable --offline rabbitmq_prometheus &&
+             rabbitmq-server"
     env:
       RABBITMQ_DEFAULT_USER: "{{ rabbitmq_user }}"
       RABBITMQ_DEFAULT_PASS: "{{ rabbitmq_password }}"
@@ -138,6 +141,7 @@
     published_ports:
       - "{{ rabbitmq_port }}:{{ rabbitmq_port }}"
       - "{{ rabbitmq_management_port }}:{{ rabbitmq_management_port }}"
+      - "{{ rabbitmq_metrics_port }}:{{ rabbitmq_metrics_port }}"
     labels:
       service: "rabbitmq"
       logging: "true"
