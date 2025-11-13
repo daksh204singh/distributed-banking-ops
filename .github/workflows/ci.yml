@@ -12,6 +12,8 @@ jobs:
   linting-account-service:
     name: Linting - Account Service
     runs-on: self-hosted
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     
     steps:
       - name: Checkout code
@@ -47,6 +49,8 @@ jobs:
   linting-transaction-service:
     name: Linting - Transaction Service
     runs-on: self-hosted
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     
     steps:
       - name: Checkout code
@@ -119,6 +123,8 @@ jobs:
     name: Unit Tests & Coverage - Account Service
     runs-on: self-hosted
     needs: [linting-account-service]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     
     steps:
       - name: Checkout code
@@ -144,6 +150,8 @@ jobs:
     name: Unit Tests & Coverage - Transaction Service
     runs-on: self-hosted
     needs: [linting-transaction-service]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     
     steps:
       - name: Checkout code
