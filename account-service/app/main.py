@@ -6,11 +6,11 @@ import structlog
 from fastapi import FastAPI, Request
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from shared.prometheus import register_rabbitmq_metrics
+from shared.prometheus.error_metrics import register_error_metrics
 from shared.logging_config import configure_logging, get_logger
 from app.database import Base, engine
 from app.router import router
-from shared.prometheus.error_metrics import register_error_metrics
-from shared.prometheus import register_rabbitmq_metrics
 
 # Configure structured logging
 configure_logging(service_name="account-service")

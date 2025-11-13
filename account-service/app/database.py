@@ -1,21 +1,15 @@
 import os
-import sys
-
+from shared.logging_config import get_logger
+from shared.prometheus.db_metrics import setup_db_metrics
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-
-# Add parent directory to path to import shared module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from shared.logging_config import get_logger  # pylint: disable=wrong-import-position
 
 logger = get_logger(__name__)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 Base = declarative_base()
-
-from shared.prometheus.db_metrics import setup_db_metrics
 
 # Lazy initialization - only create engine if DATABASE_URL is set
 engine = None

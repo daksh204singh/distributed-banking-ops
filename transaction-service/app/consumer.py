@@ -7,9 +7,9 @@ import structlog
 
 from shared.events import TransactionEvent
 from shared.logging_config import get_logger, mask_account_number, mask_amount
-from app.metrics import record_transaction_failure
 from shared.prometheus import record_consume
 from app.database import SessionLocal
+from app.metrics import record_transaction_failure
 from app.service import process_transaction
 
 logger = get_logger(__name__)

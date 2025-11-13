@@ -72,6 +72,3 @@ def register_transaction_metrics(
     for transaction_type in types:
         for reason in reasons:
             FRAUD_TRANSACTIONS_TOTAL.labels(type=transaction_type, reason=reason)
-
-
-
