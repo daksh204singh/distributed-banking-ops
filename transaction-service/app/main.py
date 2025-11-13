@@ -1,3 +1,4 @@
+import os
 import time
 import threading
 import uuid
@@ -11,6 +12,8 @@ from app.consumer import start_consumer
 from app.database import Base, engine
 from app.router import router
 from shared.prometheus.error_metrics import register_error_metrics
+from shared.prometheus import register_rabbitmq_metrics
+from app.metrics import register_transaction_metrics
 
 # Configure structured logging
 configure_logging(service_name="transaction-service")
@@ -29,6 +32,10 @@ app = FastAPI(
 Instrumentator().instrument(app).expose(app)
 
 register_error_metrics(app)
+register_transaction_metrics(app)
+register_rabbitmq_metrics(
+    queues=[os.getenv("RABBITMQ_QUEUE", "")],
+)
 
 # Add request logging middleware
 @app.middleware("http")

@@ -1,11 +1,14 @@
 import json
 import os
+import time
 
 import pika
 import structlog
 
 from shared.events import TransactionEvent
 from shared.logging_config import get_logger, mask_account_number, mask_amount
+from app.metrics import record_transaction_failure
+from shared.prometheus import record_consume
 from app.database import SessionLocal
 from app.service import process_transaction
 
@@ -22,6 +25,9 @@ def callback(ch, method, _properties, body):
     # Bind correlation ID to context for all logs in this callback
     structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
 
+    queue_name = method.routing_key or os.getenv("RABBITMQ_QUEUE", "")
+    processing_status = "success"
+    start_time = time.perf_counter()
     try:
         # Parse message
         message_data = json.loads(body)
@@ -57,6 +63,7 @@ def callback(ch, method, _properties, body):
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except (ValueError, RuntimeError) as e:
+            record_transaction_failure(transaction_type=event.transaction_type)
             logger.error(
                 "transaction_processing_failed",
                 account_id=event.account_id,
@@ -71,6 +78,7 @@ def callback(ch, method, _properties, body):
             # In production, you might want to use a dead letter queue
             # For now, we'll reject and requeue
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+            processing_status = "failed"
         finally:
             db.close()
 
@@ -83,6 +91,7 @@ def callback(ch, method, _properties, body):
             exc_info=True,
         )
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+        processing_status = "failed"
     except (ConnectionError, RuntimeError) as e:
         logger.error(
             "unexpected_callback_error",
@@ -92,9 +101,12 @@ def callback(ch, method, _properties, body):
             exc_info=True,
         )
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+        processing_status = "failed"
     finally:
         # Clear context vars after processing
         structlog.contextvars.clear_contextvars()
+        duration = time.perf_counter() - start_time
+        record_consume(queue=queue_name, status=processing_status, duration=duration)
 
 
 def start_consumer():
