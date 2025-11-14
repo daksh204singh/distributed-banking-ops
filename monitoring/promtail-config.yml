@@ -20,7 +20,7 @@ scrape_configs:
     relabel_configs:
       # Only scrape application service containers by name
       - source_labels: [__meta_docker_container_name]
-        regex: '.*(account-service|transaction-service).*'
+        regex: '.*(banking-account-service|banking-transaction-service).*'
         action: keep
       # Read from the container's JSON log file (REQUIRED)
       - source_labels: [__meta_docker_container_log_path]

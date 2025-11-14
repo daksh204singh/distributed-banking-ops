@@ -36,6 +36,8 @@
     - "{{ postgres_volume_name }}"
     - "{{ rabbitmq_volume_name }}"
     - "{{ loki_volume_name }}"
+    - "{{ prometheus_volume_name }}"
+    - "{{ grafana_volume_name }}"
 
 - name: Prepare list of TCP ports to open
   ansible.builtin.set_fact:
@@ -182,6 +184,20 @@
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../../monitoring/promtail-config.yml"
     dest: "{{ promtail_config_file }}"
+    mode: '0644'
+    remote_src: false
+
+- name: Copy Prometheus configuration file
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../monitoring/prometheus-config.yml"
+    dest: "{{ prometheus_config_file }}"
+    mode: '0644'
+    remote_src: false
+
+- name: Copy Grafana datasources configuration file
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../monitoring/grafana-datasources.yml"
+    dest: "{{ grafana_datasources_file }}"
     mode: '0644'
     remote_src: false
 
@@ -481,6 +497,63 @@
       - name: "{{ docker_network_name }}"
     labels:
       service: "promtail"
+      component: "monitoring"
+
+- name: Run Prometheus container
+  community.docker.docker_container:
+    name: "{{ prometheus_container_name }}"
+    image: "{{ prometheus_image }}"
+    restart_policy: unless-stopped
+    state: started
+    pull: true
+    recreate: true
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    volumes:
+      - "{{ prometheus_volume_name }}:/prometheus"
+      - "{{ prometheus_config_file }}:/etc/prometheus/prometheus.yml:ro"
+    networks:
+      - name: "{{ docker_network_name }}"
+    published_ports:
+      - "{{ prometheus_port }}:9090"
+    labels:
+      service: "prometheus"
+      component: "monitoring"
+
+- name: Wait for Prometheus to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ prometheus_port }}/-/ready"
+    method: GET
+    status_code: [200, 404]
+  register: prometheus_ready
+  until: prometheus_ready.status == 200
+  retries: 30
+  delay: 2
+  ignore_errors: true
+
+- name: Run Grafana container
+  community.docker.docker_container:
+    name: "{{ grafana_container_name }}"
+    image: "{{ grafana_image }}"
+    restart_policy: unless-stopped
+    state: started
+    pull: true
+    recreate: true
+    env:
+      GF_SECURITY_ADMIN_USER: "{{ grafana_admin_user }}"
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+      GF_USERS_ALLOW_SIGN_UP: "{{ grafana_allow_sign_up }}"
+    volumes:
+      - "{{ grafana_volume_name }}:/var/lib/grafana"
+      - "{{ grafana_datasources_file }}:/etc/grafana/provisioning/datasources/datasources.yml:ro"
+    networks:
+      - name: "{{ docker_network_name }}"
+    published_ports:
+      - "{{ grafana_port }}:3000"
+    labels:
+      service: "grafana"
       component: "monitoring"
 - name: Verify promoted account service via host port
   ansible.builtin.uri:

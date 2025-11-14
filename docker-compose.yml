@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  postgres:
+  banking-postgres:
     image: postgres:15-alpine
     container_name: banking-postgres
     environment:
@@ -27,7 +27,7 @@ services:
         max-file: "3"
         labels: "service"
 
-  rabbitmq:
+  banking-rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: banking-rabbitmq
     environment:
@@ -56,14 +56,14 @@ services:
         max-file: "3"
         labels: "service"
 
-  account-service:
+  banking-account-service:
     build:
       context: .
       dockerfile: ./account-service/Dockerfile
     container_name: banking-account-service
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-bankuser}:${POSTGRES_PASSWORD:-bankpass}@postgres:5432/${POSTGRES_DB:-banking_db}
-      RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bankuser}:${POSTGRES_PASSWORD:-bankpass}@banking-postgres:5432/${POSTGRES_DB:-banking_db}
+      RABBITMQ_HOST: ${RABBITMQ_HOST:-banking-rabbitmq}
       RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
       RABBITMQ_USER: ${RABBITMQ_USER:-${RABBITMQ_DEFAULT_USER:-guest}}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-guest}}
@@ -71,9 +71,9 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
+      banking-postgres:
         condition: service_healthy
-      rabbitmq:
+      banking-rabbitmq:
         condition: service_healthy
     networks:
       - banking-network
@@ -88,14 +88,14 @@ services:
         max-file: "3"
         labels: "service,logging"
 
-  transaction-service:
+  banking-transaction-service:
     build:
       context: .
       dockerfile: ./transaction-service/Dockerfile
     container_name: banking-transaction-service
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-bankuser}:${POSTGRES_PASSWORD:-bankpass}@postgres:5432/${POSTGRES_DB:-banking_db}
-      RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bankuser}:${POSTGRES_PASSWORD:-bankpass}@banking-postgres:5432/${POSTGRES_DB:-banking_db}
+      RABBITMQ_HOST: ${RABBITMQ_HOST:-banking-rabbitmq}
       RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
       RABBITMQ_USER: ${RABBITMQ_USER:-${RABBITMQ_DEFAULT_USER:-guest}}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-guest}}
@@ -103,9 +103,9 @@ services:
     ports:
       - "8001:8001"
     depends_on:
-      postgres:
+      banking-postgres:
         condition: service_healthy
-      rabbitmq:
+      banking-rabbitmq:
         condition: service_healthy
     networks:
       - banking-network
@@ -120,7 +120,7 @@ services:
         max-file: "3"
         labels: "service,logging"
 
-  loki:
+  banking-loki:
     image: grafana/loki:2.9.2
     container_name: banking-loki
     ports:
@@ -133,7 +133,7 @@ services:
       - banking-network
     restart: unless-stopped
 
-  promtail:
+  banking-promtail:
     image: grafana/promtail:2.9.2
     container_name: banking-promtail
     volumes:
@@ -142,15 +142,55 @@ services:
       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
     command: -config.file=/etc/promtail/config.yml
     depends_on:
-      - loki
+      - banking-loki
     networks:
       - banking-network
     restart: unless-stopped
+
+  banking-prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: banking-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus-config.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    networks:
+      - banking-network
+    restart: unless-stopped
+    depends_on:
+      - banking-account-service
+      - banking-transaction-service
+      - banking-rabbitmq
+
+  banking-grafana:
+    image: grafana/grafana:10.2.0
+    container_name: banking-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: ${GRAFANA_ALLOW_SIGN_UP:-false}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    networks:
+      - banking-network
+    restart: unless-stopped
+    depends_on:
+      - banking-prometheus
 
 volumes:
   postgres_data:
   rabbitmq_data:
   loki_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   banking-network:

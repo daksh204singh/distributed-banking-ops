@@ -4,6 +4,8 @@ docker_network_name: banking-network
 postgres_volume_name: banking-postgres-data
 rabbitmq_volume_name: banking-rabbitmq-data
 loki_volume_name: banking-loki-data
+prometheus_volume_name: banking-prometheus-data
+grafana_volume_name: banking-grafana-data
 
 # Container metadata
 postgres_container_name: banking-postgres
@@ -14,12 +16,16 @@ transaction_service_stable_container_name: banking-transaction-service
 transaction_service_canary_container_name: banking-transaction-service-canary
 loki_container_name: banking-loki
 promtail_container_name: banking-promtail
+prometheus_container_name: banking-prometheus
+grafana_container_name: banking-grafana
 
 # Container images
 postgres_image: postgres:15-alpine
 rabbitmq_image: rabbitmq:3-management-alpine
 loki_image: grafana/loki:2.9.2
 promtail_image: grafana/promtail:2.9.2
+prometheus_image: prom/prometheus:v2.48.0
+grafana_image: grafana/grafana:10.2.0
 account_service_image_repo: ""
 transaction_service_image_repo: ""
 
@@ -48,17 +54,26 @@ postgres_db: "{{ lookup('env', 'POSTGRES_DB') | default('banking_db', true) }}"
 # RabbitMQ credentials
 rabbitmq_user: "{{ lookup('env', 'RABBITMQ_USER') | default('guest', true) }}"
 rabbitmq_password: "{{ lookup('env', 'RABBITMQ_PASSWORD') | default('guest', true) }}"
+
+# Grafana credentials
+grafana_admin_user: "{{ lookup('env', 'GRAFANA_ADMIN_USER') | default('admin', true) }}"
+grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default('admin', true) }}"
+grafana_allow_sign_up: "{{ lookup('env', 'GRAFANA_ALLOW_SIGN_UP') | default('false', true) }}"
 rabbitmq_queue: "{{ lookup('env', 'RABBITMQ_QUEUE') | default('transaction.created', true) }}"
 rabbitmq_management_port: "{{ lookup('env', 'RABBITMQ_MANAGEMENT_PORT') | default(15672, true) }}"
 rabbitmq_port: "{{ lookup('env', 'RABBITMQ_PORT') | default(5672, true) }}"
 rabbitmq_metrics_port: "{{ lookup('env', 'RABBITMQ_METRICS_PORT') | default(15692, true) }}"
 loki_port: 3100
 promtail_port: 9080
+prometheus_port: 9090
+grafana_port: 3000
 
 # Monitoring configuration paths
 monitoring_config_path: /opt/banking-monitoring
 loki_config_file: "{{ monitoring_config_path }}/loki-config.yml"
 promtail_config_file: "{{ monitoring_config_path }}/promtail-config.yml"
+prometheus_config_file: "{{ monitoring_config_path }}/prometheus-config.yml"
+grafana_datasources_file: "{{ monitoring_config_path }}/grafana-datasources.yml"
 canary_failure_log_dir: /var/log/banking/canary_failures
 
 # Firewall configuration
@@ -72,5 +87,7 @@ firewall_tcp_ports:
   - "{{ rabbitmq_metrics_port }}"
   - "{{ loki_port }}"
   - "{{ promtail_port }}"
+  - "{{ prometheus_port }}"
+  - "{{ grafana_port }}"
   - "{{ nginx_host_port }}"
 nginx_host_port: 80
