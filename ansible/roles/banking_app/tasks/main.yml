@@ -73,6 +73,18 @@
     - banking_firewall_ports | length > 0
     - firewalld_state is defined
     - firewalld_state.rc == 0
+  register: firewalld_result
+
+- name: Verify firewall configuration was applied
+  ansible.builtin.assert:
+    that:
+      - (ufw_binary is defined and ufw_binary.stat.exists) or (firewalld_state is defined and firewalld_state.rc == 0) or banking_firewall_ports is not defined or banking_firewall_ports | length == 0
+    fail_msg: >
+      Firewall configuration failed: No firewall manager (UFW or firewalld) is available.
+      Ports {{ banking_firewall_ports | join(', ') }} need to be opened manually or a firewall manager must be installed.
+      Install UFW: apt-get install ufw (Debian/Ubuntu) or yum install firewalld (RHEL/CentOS)
+    success_msg: "Firewall configuration verified: {{ 'UFW' if (ufw_binary is defined and ufw_binary.stat.exists) else 'firewalld' if (firewalld_state is defined and firewalld_state.rc == 0) else 'No firewall ports configured' }}"
+  when: banking_firewall_ports is defined and banking_firewall_ports | length > 0
 
 - name: Create monitoring configuration directory
   ansible.builtin.file:
