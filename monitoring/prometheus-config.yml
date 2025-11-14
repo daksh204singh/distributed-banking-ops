@@ -3,19 +3,33 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  # Account Service metrics
+  # Account Service (stable)
   - job_name: 'account-service'
     static_configs:
       - targets: ['banking-account-service:8000']
         labels:
           service: 'account-service'
 
-  # Transaction Service metrics
+  # Account Service (canary)
+  - job_name: 'account-service-canary'
+    static_configs:
+      - targets: ['banking-account-service-canary:8000']
+        labels:
+          service: 'account-service-canary'
+
+  # Transaction Service (stable)
   - job_name: 'transaction-service'
     static_configs:
       - targets: ['banking-transaction-service:8001']
         labels:
           service: 'transaction-service'
+
+  # Transaction Service (canary)
+  - job_name: 'transaction-service-canary'
+    static_configs:
+      - targets: ['banking-transaction-service-canary:8001']
+        labels:
+          service: 'transaction-service-canary'
 
   # RabbitMQ metrics (already exposed on port 15692)
   - job_name: 'rabbitmq'
