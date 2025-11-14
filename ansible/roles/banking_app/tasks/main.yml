@@ -73,18 +73,6 @@
     - banking_firewall_ports | length > 0
     - firewalld_state is defined
     - firewalld_state.rc == 0
-  register: firewalld_result
-
-- name: Verify firewall configuration was applied
-  ansible.builtin.assert:
-    that:
-      - (ufw_binary is defined and ufw_binary.stat.exists) or (firewalld_state is defined and firewalld_state.rc == 0) or banking_firewall_ports is not defined or banking_firewall_ports | length == 0
-    fail_msg: >
-      Firewall configuration failed: No firewall manager (UFW or firewalld) is available.
-      Ports {{ banking_firewall_ports | join(', ') }} need to be opened manually or a firewall manager must be installed.
-      Install UFW: apt-get install ufw (Debian/Ubuntu) or yum install firewalld (RHEL/CentOS)
-    success_msg: "Firewall configuration verified: {{ 'UFW' if (ufw_binary is defined and ufw_binary.stat.exists) else 'firewalld' if (firewalld_state is defined and firewalld_state.rc == 0) else 'No firewall ports configured' }}"
-  when: banking_firewall_ports is defined and banking_firewall_ports | length > 0
 
 - name: Create monitoring configuration directory
   ansible.builtin.file:
@@ -134,16 +122,6 @@
       max-file: "3"
       labels: "service"
 
-- name: Wait for Postgres to be ready
-  ansible.builtin.command: >
-    docker exec {{ postgres_container_name }}
-    pg_isready -U {{ postgres_user }} -d {{ postgres_db }}
-  register: postgres_ready
-  until: postgres_ready.rc == 0
-  retries: 30
-  delay: 2
-  ignore_errors: false
-
 - name: Run RabbitMQ container
   community.docker.docker_container:
     name: "{{ rabbitmq_container_name }}"
@@ -161,9 +139,9 @@
     networks:
       - name: "{{ docker_network_name }}"
     published_ports:
-      - "0.0.0.0:{{ rabbitmq_port }}:{{ rabbitmq_port }}"
-      - "0.0.0.0:{{ rabbitmq_management_port }}:{{ rabbitmq_management_port }}"
-      - "0.0.0.0:{{ rabbitmq_metrics_port }}:{{ rabbitmq_metrics_port }}"
+      - "{{ rabbitmq_port }}:{{ rabbitmq_port }}"
+      - "{{ rabbitmq_management_port }}:{{ rabbitmq_management_port }}"
+      - "{{ rabbitmq_metrics_port }}:{{ rabbitmq_metrics_port }}"
     labels:
       service: "rabbitmq"
       logging: "true"
@@ -172,20 +150,6 @@
       max-size: "10m"
       max-file: "3"
       labels: "service"
-
-- name: Wait for RabbitMQ to be ready
-  ansible.builtin.uri:
-    url: "http://localhost:{{ rabbitmq_management_port }}/api/overview"
-    method: GET
-    user: "{{ rabbitmq_user }}"
-    password: "{{ rabbitmq_password }}"
-    force_basic_auth: true
-    status_code: [200]
-  register: rabbitmq_ready
-  until: rabbitmq_ready.status == 200
-  retries: 30
-  delay: 2
-  ignore_errors: false
 
 - name: Run account service container
   community.docker.docker_container:
@@ -205,7 +169,7 @@
     networks:
       - name: "{{ docker_network_name }}"
     published_ports:
-      - "0.0.0.0:{{ account_service_port }}:8000"
+      - "{{ account_service_port }}:8000"
     labels:
       logging: "true"
       service: "account-service"
@@ -214,17 +178,6 @@
       max-size: "10m"
       max-file: "3"
       labels: "service,logging"
-
-- name: Wait for account service to be ready
-  ansible.builtin.uri:
-    url: "http://localhost:{{ account_service_port }}/health"
-    method: GET
-    status_code: [200]
-  register: account_service_ready
-  until: account_service_ready.status == 200
-  retries: 30
-  delay: 2
-  ignore_errors: false
 
 - name: Run transaction service container
   community.docker.docker_container:
@@ -244,7 +197,7 @@
     networks:
       - name: "{{ docker_network_name }}"
     published_ports:
-      - "0.0.0.0:{{ transaction_service_port }}:8001"
+      - "{{ transaction_service_port }}:8001"
     labels:
       logging: "true"
       service: "transaction-service"
@@ -253,17 +206,6 @@
       max-size: "10m"
       max-file: "3"
       labels: "service,logging"
-
-- name: Wait for transaction service to be ready
-  ansible.builtin.uri:
-    url: "http://localhost:{{ transaction_service_port }}/health"
-    method: GET
-    status_code: [200]
-  register: transaction_service_ready
-  until: transaction_service_ready.status == 200
-  retries: 30
-  delay: 2
-  ignore_errors: false
 
 - name: Run Loki container
   community.docker.docker_container:
@@ -280,7 +222,7 @@
     networks:
       - name: "{{ docker_network_name }}"
     published_ports:
-      - "0.0.0.0:{{ loki_port }}:3100"
+      - "{{ loki_port }}:3100"
     labels:
       service: "loki"
       component: "monitoring"
