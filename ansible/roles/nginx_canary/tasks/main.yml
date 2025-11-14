@@ -1,0 +1,48 @@
+---
+- name: Validate gateway metadata is available
+  ansible.builtin.assert:
+    that:
+      - docker_network_name is defined
+      - banking_account_stable_name is defined
+      - banking_transaction_stable_name is defined
+      - banking_account_container_port is defined
+      - banking_transaction_container_port is defined
+      - banking_canary_weight is defined
+      - nginx_host_port is defined
+    fail_msg: >
+      Gateway configuration is missing required metadata. Ensure the banking_app role
+      has run in the same play before nginx_canary.
+
+- name: Compute gateway weights
+  ansible.builtin.set_fact:
+    _gateway_canary_weight: "{{ banking_canary_weight | default(0) | int }}"
+    _gateway_stable_weight: "{{ [100 - (banking_canary_weight | default(0) | int), 0] | max }}"
+    _gateway_canary_enabled: "{{ banking_canary_enabled | default(false) | bool }}"
+
+- name: Ensure nginx configuration directory exists
+  ansible.builtin.file:
+    path: "{{ nginx_config_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Render nginx configuration
+  ansible.builtin.template:
+    src: banking.conf.j2
+    dest: "{{ nginx_config_dir }}/banking.conf"
+    mode: '0644'
+  register: nginx_config_render
+
+- name: Run nginx edge proxy
+  community.docker.docker_container:
+    name: "{{ nginx_container_name }}"
+    image: "{{ nginx_image }}"
+    restart_policy: unless-stopped
+    state: started
+    pull: true
+    recreate: "{{ nginx_config_render.changed }}"
+    published_ports:
+      - "{{ nginx_host_port }}:{{ nginx_container_port }}"
+    networks:
+      - name: "{{ docker_network_name }}"
+    volumes:
+      - "{{ nginx_config_dir }}:/etc/nginx/conf.d:ro"

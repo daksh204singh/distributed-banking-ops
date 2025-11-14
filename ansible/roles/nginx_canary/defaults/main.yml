@@ -1,0 +1,6 @@
+---
+nginx_container_name: banking-gateway
+nginx_image: nginx:alpine
+nginx_host_port: 80
+nginx_config_dir: /etc/banking/nginx
+nginx_container_port: 80

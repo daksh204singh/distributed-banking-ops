@@ -7,6 +7,19 @@ on:
     types:
       - completed
   workflow_dispatch:
+    inputs:
+      promote_canary:
+        description: 'Set to "true" to promote the current canary to stable'
+        required: false
+        default: "false"
+      canary_weight:
+        description: "Traffic percentage that should route to the canary (0-100)"
+        required: false
+        default: "10"
+      enable_canary:
+        description: 'Set to "false" to deploy only the stable release'
+        required: false
+        default: "true"
 
 jobs:
   build-and-deploy:
@@ -33,6 +46,37 @@ jobs:
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
           echo "head_sha=${HEAD_SHA:-${GITHUB_SHA}}" >> "${GITHUB_OUTPUT}"
 
+      - name: Set canary rollout defaults
+        id: rollout_defaults
+        run: |
+          echo "promote=false" >> "${GITHUB_OUTPUT}"
+          echo "weight=10" >> "${GITHUB_OUTPUT}"
+          echo "enable=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Capture manual rollout inputs
+        id: rollout_manual
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          promote="${{ inputs.promote_canary }}"
+          weight="${{ inputs.canary_weight }}"
+          enable="${{ inputs.enable_canary }}"
+          if [ -z "$promote" ]; then promote="false"; fi
+          if [ -z "$weight" ]; then weight="10"; fi
+          if [ -z "$enable" ]; then enable="true"; fi
+          echo "promote=$promote" >> "${GITHUB_OUTPUT}"
+          echo "weight=$weight" >> "${GITHUB_OUTPUT}"
+          echo "enable=$enable" >> "${GITHUB_OUTPUT}"
+
+      - name: Merge rollout settings
+        id: rollout
+        run: |
+          promote="${{ steps.rollout_manual.outputs.promote || steps.rollout_defaults.outputs.promote }}"
+          weight="${{ steps.rollout_manual.outputs.weight || steps.rollout_defaults.outputs.weight }}"
+          enable="${{ steps.rollout_manual.outputs.enable || steps.rollout_defaults.outputs.enable }}"
+          echo "promote=$promote" >> "${GITHUB_OUTPUT}"
+          echo "weight=$weight" >> "${GITHUB_OUTPUT}"
+          echo "enable=$enable" >> "${GITHUB_OUTPUT}"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -47,6 +91,7 @@ jobs:
         with:
           context: .
           file: account-service/Dockerfile
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/account-service:${{ steps.vars.outputs.tag }}
@@ -57,6 +102,7 @@ jobs:
         with:
           context: .
           file: transaction-service/Dockerfile
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/transaction-service:${{ steps.vars.outputs.tag }}
@@ -111,5 +157,8 @@ jobs:
             --private-key ~/.ssh/id_rsa \
             -e "dockerhub_username=${{ secrets.DOCKERHUB_USERNAME }}" \
             -e "dockerhub_password=${{ secrets.DOCKERHUB_TOKEN }}" \
-            -e "image_tag=${{ steps.vars.outputs.tag }}" \
+            -e "canary_tag=${{ steps.vars.outputs.tag }}" \
+            -e "canary_traffic_percentage=${{ steps.rollout.outputs.weight }}" \
+            -e "promote_canary=${{ steps.rollout.outputs.promote }}" \
+            -e "enable_canary=${{ steps.rollout.outputs.enable }}" \
             ansible/playbooks/deploy.yml
