@@ -8,8 +8,10 @@ loki_volume_name: banking-loki-data
 # Container metadata
 postgres_container_name: banking-postgres
 rabbitmq_container_name: banking-rabbitmq
-account_service_container_name: banking-account-service
-transaction_service_container_name: banking-transaction-service
+account_service_stable_container_name: banking-account-service
+account_service_canary_container_name: banking-account-service-canary
+transaction_service_stable_container_name: banking-transaction-service
+transaction_service_canary_container_name: banking-transaction-service-canary
 loki_container_name: banking-loki
 promtail_container_name: banking-promtail
 
@@ -18,8 +20,25 @@ postgres_image: postgres:15-alpine
 rabbitmq_image: rabbitmq:3-management-alpine
 loki_image: grafana/loki:2.9.2
 promtail_image: grafana/promtail:2.9.2
-account_service_image: ""
-transaction_service_image: ""
+account_service_image_repo: ""
+transaction_service_image_repo: ""
+
+# Deployment strategy
+enable_canary: true
+canary_tag: ""
+stable_tag_override: ""
+promote_canary: false
+stable_tag_file: /etc/banking/releases/stable_tag
+stable_tag_default: latest
+canary_traffic_percentage: 10
+
+# Service networking
+account_service_container_port: 8000
+transaction_service_container_port: 8001
+account_service_port: 8000              # stable host port
+transaction_service_port: 8001          # stable host port
+account_service_canary_port: 8100
+transaction_service_canary_port: 8101
 
 # Database credentials
 postgres_user: "{{ lookup('env', 'POSTGRES_USER') | default('bankuser', true) }}"
@@ -32,10 +51,6 @@ rabbitmq_password: "{{ lookup('env', 'RABBITMQ_PASSWORD') | default('guest', tru
 rabbitmq_queue: "{{ lookup('env', 'RABBITMQ_QUEUE') | default('transaction.created', true) }}"
 rabbitmq_management_port: "{{ lookup('env', 'RABBITMQ_MANAGEMENT_PORT') | default(15672, true) }}"
 rabbitmq_port: "{{ lookup('env', 'RABBITMQ_PORT') | default(5672, true) }}"
-
-# Service ports
-account_service_port: 8000
-transaction_service_port: 8001
 loki_port: 3100
 promtail_port: 9080
 
@@ -43,11 +58,17 @@ promtail_port: 9080
 monitoring_config_path: /opt/banking-monitoring
 loki_config_file: "{{ monitoring_config_path }}/loki-config.yml"
 promtail_config_file: "{{ monitoring_config_path }}/promtail-config.yml"
+canary_failure_log_dir: /var/log/banking/canary_failures
 
 # Firewall configuration
 firewall_tcp_ports:
   - "{{ account_service_port }}"
   - "{{ transaction_service_port }}"
+  - "{{ account_service_canary_port }}"
+  - "{{ transaction_service_canary_port }}"
   - "{{ rabbitmq_port }}"
   - "{{ rabbitmq_management_port }}"
   - "{{ loki_port }}"
+  - "{{ promtail_port }}"
+  - "{{ nginx_host_port }}"
+nginx_host_port: 80
