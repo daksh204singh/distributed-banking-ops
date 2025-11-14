@@ -5,6 +5,8 @@ This project implements an event-driven CI/CD pipeline for a distributed banking
 
 By combining GitHub Actions, Docker, Ansible, Prometheus, Grafana, Loki, and automated scaling scripts, this system simulates a production-grade DevOps environment designed for mission-critical financial services.
 
+Deployment automation, canary strategy details, and manual run instructions are documented in `docs/deployment.md`.
+
 ## Key Deliverables
 - **Repository & Branch Protection**: Feature branches, PR workflows, protected release branch.
 - **Automated CI Pipeline**: Linting, unit tests, integration tests, and security scans.

@@ -3,8 +3,9 @@
   hosts: banking
   become: true
   vars:
-    account_service_image: "{{ dockerhub_username }}/account-service:{{ image_tag }}"
-    transaction_service_image: "{{ dockerhub_username }}/transaction-service:{{ image_tag }}"
+    account_service_image_repo: "{{ dockerhub_username }}/account-service"
+    transaction_service_image_repo: "{{ dockerhub_username }}/transaction-service"
   roles:
     - docker
     - banking_app
+    - nginx_canary
