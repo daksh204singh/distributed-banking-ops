@@ -31,11 +31,13 @@ storage_config:
     active_index_directory: /loki/boltdb-shipper-active
     cache_location: /loki/boltdb-shipper-cache
     cache_ttl: 24h
+    shared_store: filesystem
   filesystem:
     directory: /loki/chunks
 
 compactor:
   working_directory: /loki/boltdb-shipper-compactor
+  shared_store: filesystem
   compaction_interval: 10m
   retention_enabled: true
   retention_delete_delay: 2h
@@ -90,4 +92,3 @@ ruler:
     kvstore:
       store: inmemory
   enable_api: true
-

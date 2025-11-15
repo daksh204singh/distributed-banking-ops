@@ -8,6 +8,7 @@ import structlog
 
 from shared.events import TransactionEvent
 from shared.logging_config import get_logger
+from shared.prometheus import record_publish
 
 logger = get_logger(__name__)
 
@@ -65,6 +66,8 @@ def publish_transaction_event(account_id: int, account_number: str, amount: Deci
                 headers={"correlation_id": correlation_id},  # Add correlation ID for tracing
             ),
         )
+
+        record_publish(exchange="", routing_key=rabbitmq_queue)
 
         logger.info(
             "transaction_event_published",

@@ -1,14 +1,19 @@
+import os
 import time
 import threading
 import uuid
 
 import structlog
 from fastapi import FastAPI, Request
+from prometheus_fastapi_instrumentator import Instrumentator
 
+from shared.prometheus import register_rabbitmq_metrics
+from shared.prometheus.error_metrics import register_error_metrics
 from shared.logging_config import configure_logging, get_logger
 from app.consumer import start_consumer
 from app.database import Base, engine
 from app.router import router
+from app.metrics import register_transaction_metrics
 
 # Configure structured logging
 configure_logging(service_name="transaction-service")
@@ -21,6 +26,15 @@ if engine is not None:
 
 app = FastAPI(
     title="Transaction Service", description="Microservice for processing and auditing transactions", version="1.0.0"
+)
+
+# Add Prometheus instrumentation
+Instrumentator().instrument(app).expose(app)
+
+register_error_metrics(app)
+register_transaction_metrics(app)
+register_rabbitmq_metrics(
+    queues=[os.getenv("RABBITMQ_QUEUE", "")],
 )
 
 
