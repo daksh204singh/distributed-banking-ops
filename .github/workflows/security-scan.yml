@@ -46,6 +46,59 @@ jobs:
             bandit -r app/ -f txt -o bandit-report.txt -ll || true
           fi
 
+      - name: Check Bandit results and fail if threshold exceeded
+        working-directory: ./${{ matrix.service }}
+        env:
+          MAX_HIGH_SEVERITY: ${{ vars.BANDIT_MAX_HIGH_SEVERITY || '0' }}
+          MAX_MEDIUM_SEVERITY: ${{ vars.BANDIT_MAX_MEDIUM_SEVERITY || '10' }}
+          SERVICE_NAME: ${{ matrix.service }}
+        run: |
+          if [ -f bandit-report.json ]; then
+            python3 << 'EOF'
+          import json
+          import sys
+          import os
+          
+          max_high = int(os.environ.get('MAX_HIGH_SEVERITY', '0'))
+          max_medium = int(os.environ.get('MAX_MEDIUM_SEVERITY', '10'))
+          service_name = os.environ.get('SERVICE_NAME', 'unknown')
+          
+          try:
+              with open('bandit-report.json', 'r') as f:
+                  report = json.load(f)
+              
+              metrics = report.get('metrics', {})
+              high_count = metrics.get('SEVERITY.HIGH', 0)
+              medium_count = metrics.get('SEVERITY.MEDIUM', 0)
+              
+              print(f"Bandit Scan Results for {service_name}:")
+              print(f"  HIGH severity issues: {high_count} (threshold: {max_high})")
+              print(f"  MEDIUM severity issues: {medium_count} (threshold: {max_medium})")
+              
+              failed = False
+              if high_count > max_high:
+                  print(f"❌ FAILED: Found {high_count} HIGH severity issues, exceeding threshold of {max_high}")
+                  failed = True
+              
+              if medium_count > max_medium:
+                  print(f"❌ FAILED: Found {medium_count} MEDIUM severity issues, exceeding threshold of {max_medium}")
+                  failed = True
+              
+              if failed:
+                  sys.exit(1)
+              else:
+                  print("✅ PASSED: All vulnerability thresholds met")
+          except FileNotFoundError:
+              print("⚠️  Warning: bandit-report.json not found, skipping threshold check")
+          except json.JSONDecodeError as e:
+              print(f"⚠️  Warning: Failed to parse bandit-report.json: {e}")
+          except Exception as e:
+              print(f"⚠️  Warning: Error checking Bandit results: {e}")
+          EOF
+          else
+            echo "⚠️  Warning: bandit-report.json not found, skipping threshold check"
+          fi
+
       - name: Generate timestamp
         id: timestamp
         run: |
