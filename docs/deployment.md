@@ -79,7 +79,18 @@ When a manual rollout is needed, run the steps below from the repo root so the b
    docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
    ```
 
-   Expect `banking-account-service-stable`, `banking-account-service-canary`, `banking-transaction-service-stable`, `banking-transaction-service-canary`, `banking-postgres`, `banking-rabbitmq`, `banking-gateway`, `banking-loki`, and `banking-promtail`.
+Expect to see the following containers:
+
+- `banking-account-service-stable`
+- `banking-account-service-canary`
+- `banking-transaction-service-stable`
+- `banking-transaction-service-canary`
+- `banking-postgres`
+- `banking-rabbitmq`
+- `banking-gateway`
+- `banking-loki`
+- `banking-promtail`
+
 2. Hit the public endpoints (through NGINX):
    ```bash
    curl http://YOUR_PRODUCTION_HOST_IP/account/health
