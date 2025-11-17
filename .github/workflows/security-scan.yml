@@ -1,0 +1,74 @@
+name: Security Code Scan
+
+on:
+  pull_request:
+    branches: [ main, develop, release ]
+  workflow_dispatch:
+
+jobs:
+  # Bandit Security Analysis - Finds vulnerabilities mapping to OWASP Top 10
+  bandit-security-scan:
+    name: Bandit Security Scan
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        service: [account-service, transaction-service, shared]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit[toml]
+          if [ "${{ matrix.service }}" != "shared" ]; then
+            pip install -r ${{ matrix.service }}/requirements.txt
+          else
+            pip install -r requirements-qa.txt
+            pip install pydantic
+          fi
+
+      - name: Run Bandit security scan
+        working-directory: ./${{ matrix.service }}
+        continue-on-error: true
+        run: |
+          if [ "${{ matrix.service }}" == "shared" ]; then
+            bandit -r . -f json -o bandit-report.json -ll || true
+            bandit -r . -f txt -o bandit-report.txt -ll || true
+          else
+            bandit -r app/ -f json -o bandit-report.json -ll || true
+            bandit -r app/ -f txt -o bandit-report.txt -ll || true
+          fi
+
+      - name: Check Bandit results and fail if threshold exceeded
+        working-directory: ./${{ matrix.service }}
+        env:
+          MAX_HIGH_SEVERITY: ${{ vars.BANDIT_MAX_HIGH_SEVERITY || '0' }}
+          MAX_MEDIUM_SEVERITY: ${{ vars.BANDIT_MAX_MEDIUM_SEVERITY || '10' }}
+        run: |
+          python3 ${{ github.workspace }}/scripts/check_bandit_results.py \
+            bandit-report.json \
+            "${{ matrix.service }}" \
+            "$MAX_HIGH_SEVERITY" \
+            "$MAX_MEDIUM_SEVERITY" || true
+
+      - name: Generate timestamp
+        id: timestamp
+        run: |
+          TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
+          echo "timestamp=${TIMESTAMP}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: bandit-report-${{ matrix.service }}-${{ steps.timestamp.outputs.timestamp }}
+          path: ${{ matrix.service }}/bandit-report.*
+          retention-days: 30
+

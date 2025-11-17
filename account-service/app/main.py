@@ -1,9 +1,13 @@
+import os
 import time
 import uuid
 
 import structlog
 from fastapi import FastAPI, Request
+from prometheus_fastapi_instrumentator import Instrumentator
 
+from shared.prometheus import register_rabbitmq_metrics
+from shared.prometheus.error_metrics import register_error_metrics
 from shared.logging_config import configure_logging, get_logger
 from app.database import Base, engine
 from app.router import router
@@ -18,6 +22,15 @@ if engine is not None:
     logger.info("database_tables_initialized")
 
 app = FastAPI(title="Account Service", description="Microservice for managing bank accounts", version="1.0.0")
+
+# Add Prometheus instrumentation
+Instrumentator().instrument(app).expose(app)
+
+register_error_metrics(app)
+register_rabbitmq_metrics(
+    exchanges=[""],
+    routing_keys=[os.getenv("RABBITMQ_QUEUE", "")],
+)
 
 
 # Add request logging middleware
