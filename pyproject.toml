@@ -26,10 +26,12 @@ disable = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["account-service/tests", "transaction-service/tests"]
+testpaths = ["account-service/tests", "transaction-service/tests", "integration-tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
+# Integration tests may take longer, so increase timeout
+timeout = 300
 
 
