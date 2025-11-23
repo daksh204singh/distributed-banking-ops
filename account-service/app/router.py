@@ -47,9 +47,3 @@ def withdraw(account_id: int, withdraw_data: WithdrawRequest, db: Session = Depe
         return account
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-
-
-@router.get("/test/error-500")
-def trigger_500_error():
-    """Test endpoint to trigger 500 errors for monitoring/testing"""
-    raise Exception("Intentional 500 error for testing error monitoring and metrics")
