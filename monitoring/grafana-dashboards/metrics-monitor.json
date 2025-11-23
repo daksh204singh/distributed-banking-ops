@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 3,
+  "id": 2,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -628,6 +628,6 @@
   "timezone": "",
   "title": "Metrics Monitor",
   "uid": "cbd8de15-b766-4697-9590-cba58c651b96",
-  "version": 15,
+  "version": 1,
   "weekStart": ""
 }
