@@ -398,7 +398,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "count(up{job=~\"account-service|transaction-service\"}) by (job)",
+          "expr": "count(up{job=~\"account-service.*|transaction-service.*\"}) by (job)",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -621,7 +621,7 @@
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
