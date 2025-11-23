@@ -201,6 +201,27 @@
     mode: '0644'
     remote_src: false
 
+- name: Copy Grafana dashboard provisioning configuration file
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../monitoring/grafana-dashboard-provisioning.yml"
+    dest: "{{ grafana_dashboard_provisioning_file }}"
+    mode: '0644'
+    remote_src: false
+
+- name: Create Grafana dashboards directory
+  ansible.builtin.file:
+    path: "{{ grafana_dashboards_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy Grafana dashboards
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ grafana_dashboards_dir }}/{{ item | basename }}"
+    mode: '0644'
+    remote_src: false
+  loop: "{{ lookup('fileglob', playbook_dir + '/../../monitoring/grafana-dashboards/*.json', wantlist=True) }}"
+
 - name: Run Postgres database container
   community.docker.docker_container:
     name: "{{ postgres_container_name }}"
@@ -548,6 +569,8 @@
     volumes:
       - "{{ grafana_volume_name }}:/var/lib/grafana"
       - "{{ grafana_datasources_file }}:/etc/grafana/provisioning/datasources/datasources.yml:ro"
+      - "{{ grafana_dashboard_provisioning_file }}:/etc/grafana/provisioning/dashboards/default.yml:ro"
+      - "{{ grafana_dashboards_dir }}:/etc/grafana/provisioning/dashboards/dashboards:ro"
     networks:
       - name: "{{ docker_network_name }}"
     published_ports:
