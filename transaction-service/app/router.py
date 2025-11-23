@@ -20,3 +20,9 @@ def list_transactions(
     """Get transaction history"""
     transactions = get_transactions(db, account_id=account_id, skip=skip, limit=limit)
     return transactions
+
+
+@router.get("/test/error-500")
+def trigger_500_error():
+    """Test endpoint to trigger 500 errors for monitoring/testing"""
+    raise Exception("Intentional 500 error for testing error monitoring and metrics")

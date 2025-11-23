@@ -74,6 +74,8 @@ loki_config_file: "{{ monitoring_config_path }}/loki-config.yml"
 promtail_config_file: "{{ monitoring_config_path }}/promtail-config.yml"
 prometheus_config_file: "{{ monitoring_config_path }}/prometheus-config.yml"
 grafana_datasources_file: "{{ monitoring_config_path }}/grafana-datasources.yml"
+grafana_dashboard_provisioning_file: "{{ monitoring_config_path }}/grafana-dashboard-provisioning.yml"
+grafana_dashboards_dir: "{{ monitoring_config_path }}/grafana-dashboards"
 canary_failure_log_dir: /var/log/banking/canary_failures
 
 # Firewall configuration
