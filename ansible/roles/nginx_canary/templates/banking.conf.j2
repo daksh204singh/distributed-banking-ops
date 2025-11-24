@@ -3,7 +3,7 @@ resolver 127.0.0.11 valid=1s ipv6=off;
 
 upstream account_service {
     zone account_service 64k;  # Shared memory zone required for resolve
-    least_conn;  # Use least connections algorithm for load balancing
+    # Use round_robin (default) for load balancing - distributes requests evenly
     # Use network alias for stable traffic (supports autoscaling - resolves to all instances)
     server account-service:{{ banking_account_container_port }} resolve{% if (_gateway_stable_weight | int) > 0 %} weight={{ _gateway_stable_weight }}{% endif %};
     {% if _gateway_canary_enabled and (_gateway_canary_weight | int) > 0 %}
@@ -15,7 +15,7 @@ upstream account_service {
 
 upstream transaction_service {
     zone transaction_service 64k;  # Shared memory zone required for resolve
-    least_conn;  # Use least connections algorithm for load balancing
+    # Use round_robin (default) for load balancing - distributes requests evenly
     # Use network alias for stable traffic (supports autoscaling - resolves to all instances)
     server transaction-service:{{ banking_transaction_container_port }} resolve{% if (_gateway_stable_weight | int) > 0 %} weight={{ _gateway_stable_weight }}{% endif %};
     {% if _gateway_canary_enabled and (_gateway_canary_weight | int) > 0 %}
