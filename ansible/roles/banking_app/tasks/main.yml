@@ -546,6 +546,7 @@
     volumes:
       - "{{ prometheus_volume_name }}:/prometheus"
       - "{{ prometheus_config_file }}:/etc/prometheus/prometheus.yml:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
       - name: "{{ docker_network_name }}"
     published_ports:
