@@ -582,6 +582,46 @@
     labels:
       service: "grafana"
       component: "monitoring"
+
+- name: Define autoscale service image reference
+  ansible.builtin.set_fact:
+    autoscale_service_image: "{{ autoscale_service_image_repo }}:{{ current_stable_tag }}"
+  when: autoscale_service_image_repo | length > 0
+
+- name: Run autoscale service container
+  community.docker.docker_container:
+    name: "{{ autoscale_service_container_name }}"
+    image: "{{ autoscale_service_image }}"
+    restart_policy: unless-stopped
+    state: started
+    pull: true
+    recreate: true
+    env:
+      PYTHONPATH: "/app"
+      DOCKER_NETWORK: "{{ docker_network_name }}"
+      MIN_INSTANCES: "{{ autoscale_min_instances | default(1) }}"
+      MAX_INSTANCES: "{{ autoscale_max_instances | default(5) }}"
+      SCALING_COOLDOWN_MINUTES: "{{ autoscale_cooldown_minutes | default(5) }}"
+      DOCKER_TIMEOUT: "{{ autoscale_docker_timeout | default(60) }}"
+      CONTAINER_STOP_TIMEOUT: "{{ autoscale_container_stop_timeout | default(30) }}"
+      DOCKER_QUERY_TIMEOUT: "{{ autoscale_docker_query_timeout | default(10) }}"
+      LOG_LEVEL: "{{ autoscale_log_level | default('INFO') }}"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - name: "{{ docker_network_name }}"
+    published_ports:
+      - "{{ autoscale_service_port }}:8080"
+    labels:
+      service: "autoscale"
+      component: "monitoring"
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+      labels: "service"
+  when: autoscale_service_image_repo | length > 0
+
 - name: Verify promoted account service via host port
   ansible.builtin.uri:
     url: "http://127.0.0.1:{{ account_service_port }}/health"

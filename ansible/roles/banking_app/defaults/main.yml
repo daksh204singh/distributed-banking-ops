@@ -18,6 +18,7 @@ loki_container_name: banking-loki
 promtail_container_name: banking-promtail
 prometheus_container_name: banking-prometheus
 grafana_container_name: banking-grafana
+autoscale_service_container_name: banking-autoscale
 
 # Container images
 postgres_image: postgres:15-alpine
@@ -28,6 +29,7 @@ prometheus_image: prom/prometheus:v2.48.0
 grafana_image: grafana/grafana:10.2.0
 account_service_image_repo: ""
 transaction_service_image_repo: ""
+autoscale_service_image_repo: ""
 
 # Deployment strategy
 enable_canary: true
@@ -45,6 +47,7 @@ account_service_port: 8000              # stable host port
 transaction_service_port: 8001          # stable host port
 account_service_canary_port: 8100
 transaction_service_canary_port: 8101
+autoscale_service_port: 8080
 
 # Database credentials
 postgres_user: "{{ lookup('env', 'POSTGRES_USER') | default('bankuser', true) }}"
@@ -91,5 +94,6 @@ firewall_tcp_ports:
   - "{{ promtail_port }}"
   - "{{ prometheus_port }}"
   - "{{ grafana_port }}"
+  - "{{ autoscale_service_port }}"
   - "{{ nginx_host_port }}"
 nginx_host_port: 80
