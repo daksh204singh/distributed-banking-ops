@@ -229,6 +229,23 @@
     remote_src: false
   loop: "{{ lookup('fileglob', playbook_dir + '/../../monitoring/grafana-dashboards/*.json', wantlist=True) }}"
 
+- name: Ensure Grafana alerting directory exists
+  ansible.builtin.file:
+    path: "{{ grafana_alerting_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy Grafana alerting provisioning files
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ grafana_alerting_dir }}/{{ item | basename }}"
+    mode: '0644'
+  remote_src: false
+  loop:
+    - "{{ playbook_dir }}/../../monitoring/grafana-alerting/contact-points.yml"
+    - "{{ playbook_dir }}/../../monitoring/grafana-alerting/policies.yml"
+    - "{{ playbook_dir }}/../../monitoring/grafana-alerting/rules-autoscale.yml"
+
 - name: Run Postgres database container
   community.docker.docker_container:
     name: "{{ postgres_container_name }}"
@@ -602,6 +619,7 @@
       - "{{ grafana_datasources_file }}:/etc/grafana/provisioning/datasources/datasources.yml:ro"
       - "{{ grafana_dashboard_provisioning_file }}:/etc/grafana/provisioning/dashboards/default.yml:ro"
       - "{{ grafana_dashboards_dir }}:/etc/grafana/provisioning/dashboards/dashboards:ro"
+      - "{{ grafana_alerting_dir }}:/etc/grafana/provisioning/alerting:ro"
     networks:
       - name: "{{ docker_network_name }}"
     published_ports:

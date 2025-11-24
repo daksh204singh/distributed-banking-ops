@@ -79,6 +79,7 @@ prometheus_config_file: "{{ monitoring_config_path }}/prometheus-config.yml"
 grafana_datasources_file: "{{ monitoring_config_path }}/grafana-datasources.yml"
 grafana_dashboard_provisioning_file: "{{ monitoring_config_path }}/grafana-dashboard-provisioning.yml"
 grafana_dashboards_dir: "{{ monitoring_config_path }}/grafana-dashboards"
+grafana_alerting_dir: "{{ monitoring_config_path }}/grafana-alerting"
 canary_failure_log_dir: /var/log/banking/canary_failures
 
 # Firewall configuration

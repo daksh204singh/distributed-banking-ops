@@ -75,9 +75,7 @@ services:
       banking-rabbitmq:
         condition: service_healthy
     networks:
-      banking-network:
-        aliases:
-          - account-service
+      - banking-network
     restart: unless-stopped
     labels:
       logging: "true"
@@ -108,9 +106,7 @@ services:
       banking-rabbitmq:
         condition: service_healthy
     networks:
-      banking-network:
-        aliases:
-          - transaction-service
+      - banking-network
     restart: unless-stopped
     labels:
       logging: "true"
@@ -185,6 +181,7 @@ services:
       - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
       - ./monitoring/grafana-dashboard-provisioning.yml:/etc/grafana/provisioning/dashboards/default.yml:ro
       - ./monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards/dashboards:ro
+      - ./monitoring/grafana-alerting:/etc/grafana/provisioning/alerting:ro
     networks:
       - banking-network
     restart: unless-stopped
