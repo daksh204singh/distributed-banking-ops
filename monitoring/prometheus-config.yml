@@ -3,33 +3,53 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  # Account Service (stable)
+  # Account Service - auto-discovers all scaled instances using Docker service discovery
   - job_name: 'account-service'
-    static_configs:
-      - targets: ['banking-account-service:8000']
-        labels:
-          service: 'account-service'
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # Only scrape account-service containers (matches banking-account-service, banking-account-service-1, etc.)
+      - source_labels: [__meta_docker_container_name]
+        regex: '.*banking-account-service.*'
+        action: keep
+      # Extract container name
+      - source_labels: [__meta_docker_container_name]
+        target_label: container
+        regex: '.*/(.*)'
+        replacement: '${1}'
+      # Set service label
+      - target_label: service
+        replacement: 'account-service'
+      # Set the metrics endpoint (port 8000)
+      - source_labels: [__meta_docker_container_ip]
+        target_label: __address__
+        regex: '(.+)'
+        replacement: '${1}:8000'
 
-  # Account Service (canary)
-  - job_name: 'account-service-canary'
-    static_configs:
-      - targets: ['banking-account-service-canary:8000']
-        labels:
-          service: 'account-service-canary'
-
-  # Transaction Service (stable)
+  # Transaction Service - auto-discovers all scaled instances using Docker service discovery
   - job_name: 'transaction-service'
-    static_configs:
-      - targets: ['banking-transaction-service:8001']
-        labels:
-          service: 'transaction-service'
-
-  # Transaction Service (canary)
-  - job_name: 'transaction-service-canary'
-    static_configs:
-      - targets: ['banking-transaction-service-canary:8001']
-        labels:
-          service: 'transaction-service-canary'
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # Only scrape transaction-service containers (matches banking-transaction-service, banking-transaction-service-1, etc.)
+      - source_labels: [__meta_docker_container_name]
+        regex: '.*banking-transaction-service.*'
+        action: keep
+      # Extract container name
+      - source_labels: [__meta_docker_container_name]
+        target_label: container
+        regex: '.*/(.*)'
+        replacement: '${1}'
+      # Set service label
+      - target_label: service
+        replacement: 'transaction-service'
+      # Set the metrics endpoint (port 8001)
+      - source_labels: [__meta_docker_container_ip]
+        target_label: __address__
+        regex: '(.+)'
+        replacement: '${1}:8001'
 
   # RabbitMQ metrics (already exposed on port 15692)
   - job_name: 'rabbitmq'

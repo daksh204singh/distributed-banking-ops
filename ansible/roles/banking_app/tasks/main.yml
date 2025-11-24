@@ -421,6 +421,8 @@
     env: "{{ service_common_env }}"
     networks:
       - name: "{{ docker_network_name }}"
+        aliases:
+          - account-service
     published_ports:
       - "{{ account_service_port }}:{{ account_service_container_port }}"
     labels:
@@ -444,6 +446,8 @@
     env: "{{ service_common_env }}"
     networks:
       - name: "{{ docker_network_name }}"
+        aliases:
+          - transaction-service
     published_ports:
       - "{{ transaction_service_port }}:{{ transaction_service_container_port }}"
     labels:

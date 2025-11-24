@@ -1,4 +1,5 @@
 import os
+import socket
 import time
 import threading
 import uuid
@@ -100,7 +101,12 @@ def startup_event():
 @app.get("/health")
 def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "transaction-service"}
+    container_name = os.getenv('HOSTNAME', socket.gethostname())
+    return {
+        "status": "healthy",
+        "service": "transaction-service",
+        "container": container_name
+    }
 
 
 @app.get("/")
