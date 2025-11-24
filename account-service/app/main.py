@@ -86,12 +86,8 @@ app.include_router(router)
 @app.get("/health")
 def health_check():
     """Health check endpoint"""
-    container_name = os.getenv('HOSTNAME', socket.gethostname())
-    return {
-        "status": "healthy",
-        "service": "account-service",
-        "container": container_name
-    }
+    container_name = os.getenv("HOSTNAME", socket.gethostname())
+    return {"status": "healthy", "service": "account-service", "container": container_name}
 
 
 @app.get("/")
