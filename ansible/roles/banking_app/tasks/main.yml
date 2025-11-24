@@ -476,6 +476,24 @@
     - "{{ transaction_service_canary_container_name }}"
   when: not (enable_canary | bool)
 
+- name: Find auto-scaled service containers (stable only)
+  ansible.builtin.shell: |
+    docker ps -a --format '{{"{{"}}.Names{{"}}"}}' | grep -E '^banking-(account|transaction)-service-[0-9]+$' || true
+  register: autoscaled_container_list
+  changed_when: false
+  when: cleanup_autoscaled_containers | default(true) | bool
+
+- name: Remove auto-scaled service containers
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ autoscaled_container_list.stdout_lines }}"
+  when:
+    - cleanup_autoscaled_containers | default(true) | bool
+    - autoscaled_container_list is defined
+    - autoscaled_container_list.stdout is defined
+    - autoscaled_container_list.stdout | length > 0
+
 - name: Fail deployment because canary health checks failed
   ansible.builtin.fail:
     msg: "Canary deployment failed health checks. See {{ canary_failure_log_dir }} for details."
