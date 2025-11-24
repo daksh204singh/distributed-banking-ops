@@ -134,6 +134,13 @@
     transaction_service_stable_image: "{{ transaction_service_image_repo }}:{{ current_stable_tag }}"
     transaction_service_canary_image: "{{ transaction_service_image_repo }}:{{ effective_canary_tag }}"
 
+- name: Define autoscale service image reference
+  ansible.builtin.set_fact:
+    autoscale_service_image: "{{ autoscale_service_image_repo }}:{{ current_stable_tag }}"
+  when: 
+    - autoscale_service_image_repo is defined
+    - autoscale_service_image_repo | length > 0
+
 - name: Define shared environment configuration
   ansible.builtin.set_fact:
     service_common_env:
@@ -583,11 +590,6 @@
       service: "grafana"
       component: "monitoring"
 
-- name: Define autoscale service image reference
-  ansible.builtin.set_fact:
-    autoscale_service_image: "{{ autoscale_service_image_repo }}:{{ current_stable_tag }}"
-  when: autoscale_service_image_repo | length > 0
-
 - name: Run autoscale service container
   community.docker.docker_container:
     name: "{{ autoscale_service_container_name }}"
@@ -620,7 +622,10 @@
       max-size: "10m"
       max-file: "3"
       labels: "service"
-  when: autoscale_service_image_repo | length > 0
+  when: 
+    - autoscale_service_image_repo is defined
+    - autoscale_service_image_repo | length > 0
+    - autoscale_service_image is defined
 
 - name: Verify promoted account service via host port
   ansible.builtin.uri:
