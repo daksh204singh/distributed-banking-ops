@@ -10,7 +10,7 @@ upstream account_service {
     # Explicit canary container reference (not using alias to keep canary separate)
     server {{ banking_account_canary_name }}:{{ banking_account_container_port }} weight={{ _gateway_canary_weight }};
     {% endif %}
-    keepalive 32;  # Connection pool for better performance
+    # Note: keepalive removed to ensure proper load balancing across all resolved IPs
 }
 
 upstream transaction_service {
@@ -22,7 +22,7 @@ upstream transaction_service {
     # Explicit canary container reference (not using alias to keep canary separate)
     server {{ banking_transaction_canary_name }}:{{ banking_transaction_container_port }} weight={{ _gateway_canary_weight }};
     {% endif %}
-    keepalive 32;  # Connection pool for better performance
+    # Note: keepalive removed to ensure proper load balancing across all resolved IPs
 }
 
 server {
@@ -35,6 +35,8 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Disable connection reuse to force load balancing across all resolved IPs
+        proxy_set_header Connection "close";
         
         # Health checks
         proxy_connect_timeout 5s;
@@ -49,6 +51,8 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Disable connection reuse to force load balancing across all resolved IPs
+        proxy_set_header Connection "close";
         
         # Health checks
         proxy_connect_timeout 5s;
