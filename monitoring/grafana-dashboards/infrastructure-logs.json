@@ -25,7 +25,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -48,7 +48,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
           "expr": "{job=\"infrastructure-logs\", container=~\".*postgres.*\"}",
@@ -62,7 +62,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -85,7 +85,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
           "expr": "{job=\"infrastructure-logs\", container=~\".*postgres.*\"} |= \"ERROR\"",
@@ -99,7 +99,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -122,7 +122,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
           "expr": "{job=\"infrastructure-logs\", container=~\".*rabbitmq.*\"}",
@@ -136,7 +136,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -159,7 +159,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
           "expr": "{job=\"infrastructure-logs\", container=~\".*rabbitmq.*\"} |= \"error\"",
