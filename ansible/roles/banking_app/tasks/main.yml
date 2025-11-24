@@ -240,7 +240,7 @@
     src: "{{ item }}"
     dest: "{{ grafana_alerting_dir }}/{{ item | basename }}"
     mode: '0644'
-  remote_src: false
+    remote_src: false
   loop:
     - "{{ playbook_dir }}/../../monitoring/grafana-alerting/contact-points.yml"
     - "{{ playbook_dir }}/../../monitoring/grafana-alerting/policies.yml"

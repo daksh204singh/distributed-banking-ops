@@ -120,7 +120,7 @@ groups:
                     name: Expression
                     type: __expr__
                     uid: __expr__
-                expression: $B > 5 && $C < 5
+                expression: $B > 15 && $C < 5
                 hide: false
                 intervalMs: 1000
                 maxDataPoints: 43200
@@ -265,7 +265,7 @@ groups:
                     name: Expression
                     type: __expr__
                     uid: __expr__
-                expression: $B < 5 && $C > 1
+                expression: $B < 15 && $C > 1
                 hide: false
                 intervalMs: 1000
                 maxDataPoints: 43200
@@ -407,7 +407,7 @@ groups:
                     name: Expression
                     type: __expr__
                     uid: __expr__
-                expression: $B > 5 && $C < 5
+                expression: $B > 15 && $C < 5
                 intervalMs: 1000
                 maxDataPoints: 43200
                 refId: E
@@ -526,7 +526,7 @@ groups:
                     name: Expression
                     type: __expr__
                     uid: __expr__
-                expression: $B < 5 && $C > 1
+                expression: $B < 15 && $C > 1
                 hide: false
                 intervalMs: 1000
                 maxDataPoints: 43200
