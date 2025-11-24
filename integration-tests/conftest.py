@@ -60,16 +60,16 @@ def docker_compose_services():
 @pytest.fixture(scope="session")
 def account_service_url(docker_compose_services):
     """Base URL for account service from docker-compose container."""
-    host = docker_compose_services.get_service_host("banking-account-service", port=8000)
-    port = docker_compose_services.get_service_port("banking-account-service", port=8000)
+    host = docker_compose_services.get_service_host("account-service", port=8000)
+    port = docker_compose_services.get_service_port("account-service", port=8000)
     return f"http://{host}:{port}"
 
 
 @pytest.fixture(scope="session")
 def transaction_service_url(docker_compose_services):
     """Base URL for transaction service from docker-compose container."""
-    host = docker_compose_services.get_service_host("banking-transaction-service", port=8001)
-    port = docker_compose_services.get_service_port("banking-transaction-service", port=8001)
+    host = docker_compose_services.get_service_host("transaction-service", port=8001)
+    port = docker_compose_services.get_service_port("transaction-service", port=8001)
     return f"http://{host}:{port}"
 
 
