@@ -285,7 +285,7 @@ groups:
           isPaused: false
         - uid: txn_scale_up
           title: transaction high traffic
-          condition: A
+          condition: E
           data:
             - refId: A
               relativeTimeRange:
