@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 6,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -109,11 +109,28 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_highr_seconds_bucket[5m])) by (le, service))",
+          "expr": "histogram_quantile(0.95,\n  sum by (le, service) (\n    rate(http_request_duration_highr_seconds_bucket{container!~\".*-canary$\"}[5m])\n  )\n)",
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{service}}",
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by(le, container) (rate(http_request_duration_highr_seconds_bucket{container=~\".*-canary$\"}[5m])))",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "{{container}}",
+          "range": true,
+          "refId": "B",
+          "useBackend": false
         }
       ],
       "title": "Request Latency (p95)",
@@ -205,7 +222,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total[5m])) by (service)",
+          "expr": "sum(rate(http_requests_total[5m])) by (container)",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -303,7 +320,7 @@
           "editorMode": "code",
           "expr": "process_resident_memory_bytes / 1024 / 1024",
           "instant": false,
-          "legendFormat": "{{service}}",
+          "legendFormat": "{{container}}",
           "range": true,
           "refId": "A"
         }
@@ -397,12 +414,33 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "code",
-          "expr": "count(up{job=~\"account-service.*|transaction-service.*\"}) by (job)",
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "count by(job) (up{job=~\"account-service|transaction-service\", container!~\".*-canary$\"})",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{job}}",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "count by(container) (up{job=~\"account-service|transaction-service\", container=~\".*-canary$\"})",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "{{container}}",
+          "range": true,
+          "refId": "B",
+          "useBackend": false
         }
       ],
       "title": "Container Count",
@@ -494,9 +532,9 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg(rate(process_cpu_seconds_total[5m]) * 100) by (service)",
+          "expr": "avg(rate(process_cpu_seconds_total[5m]) * 100) by (container)",
           "instant": false,
-          "legendFormat": "{{service}}",
+          "legendFormat": "{{container}}",
           "range": true,
           "refId": "A"
         }
@@ -590,7 +628,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total{status=~\"4..\"}[5m])) by (service)",
+          "expr": "sum by (service) (\n  rate(http_requests_total{status=~\"4..\", container!~\".*-canary$\"}[5m])\n)",
           "instant": false,
           "legendFormat": "{{service}} - 4xx Errors",
           "range": true,
@@ -602,12 +640,38 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) by (service)",
+          "expr": "sum by (service) (\n  rate(http_requests_total{status=~\"5..\", container!~\".*-canary$\"}[5m])\n)",
           "hide": false,
           "instant": false,
           "legendFormat": "{{service}} - 5xx Errors",
           "range": true,
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "sum by (container) (\n  rate(http_requests_total{status=~\"4..\", container=~\".*-canary$\"}[5m])\n)",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "{{container}} - 4xx Errors",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "sum by (container) (\n  rate(http_requests_total{status=~\"5..\", container=~\".*-canary$\"}[5m])\n)",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "{{container}} - 4xx Errors",
+          "range": true,
+          "refId": "D"
         }
       ],
       "title": "Error Rate",
@@ -628,6 +692,6 @@
   "timezone": "",
   "title": "Metrics Monitor",
   "uid": "cbd8de15-b766-4697-9590-cba58c651b96",
-  "version": 1,
+  "version": 4,
   "weekStart": ""
 }
