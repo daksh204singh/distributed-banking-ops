@@ -535,6 +535,7 @@
   community.docker.docker_container:
     name: "{{ prometheus_container_name }}"
     image: "{{ prometheus_image }}"
+    user: "root"
     restart_policy: unless-stopped
     state: started
     pull: true
