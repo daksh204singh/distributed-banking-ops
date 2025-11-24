@@ -13,6 +13,10 @@ scrape_configs:
       - source_labels: [__meta_docker_container_name]
         regex: '.*banking-account-service.*'
         action: keep
+      # Only keep containers on banking-network to prevent duplicates from multiple networks
+      - source_labels: [__meta_docker_network_name]
+        regex: '.*banking-network.*'
+        action: keep
       # Extract container name
       - source_labels: [__meta_docker_container_name]
         target_label: container
@@ -36,6 +40,10 @@ scrape_configs:
       # Only scrape transaction-service containers (matches banking-transaction-service, banking-transaction-service-1, etc.)
       - source_labels: [__meta_docker_container_name]
         regex: '.*banking-transaction-service.*'
+        action: keep
+      # Only keep containers on banking-network to prevent duplicates from multiple networks
+      - source_labels: [__meta_docker_network_name]
+        regex: '.*banking-network.*'
         action: keep
       # Extract container name
       - source_labels: [__meta_docker_container_name]
