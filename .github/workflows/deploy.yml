@@ -150,6 +150,7 @@ jobs:
           RABBITMQ_QUEUE: ${{ secrets.RABBITMQ_QUEUE }}
           RABBITMQ_PORT: ${{ secrets.RABBITMQ_PORT }}
           RABBITMQ_MANAGEMENT_PORT: ${{ secrets.RABBITMQ_MANAGEMENT_PORT }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           ansible-playbook \
             -i ansible/inventory/hosts.ini \
@@ -160,6 +161,7 @@ jobs:
             -e "account_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/account-service" \
             -e "transaction_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/transaction-service" \
             -e "autoscale_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service" \
+            -e "slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL }}" \
             -e "canary_tag=${{ steps.vars.outputs.tag }}" \
             -e "canary_traffic_percentage=${{ steps.rollout.outputs.weight }}" \
             -e "promote_canary=${{ steps.rollout.outputs.promote }}" \

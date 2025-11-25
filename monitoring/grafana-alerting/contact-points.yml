@@ -15,6 +15,5 @@ contactPoints:
         type: slack
         settings:
           url: ${SLACK_WEBHOOK_URL}
-          recipient: ${SLACK_RECIPIENT:-#alerts}
         disableResolveMessage: false
 

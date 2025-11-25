@@ -177,7 +177,6 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: ${GRAFANA_ALLOW_SIGN_UP:-false}
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
-      SLACK_RECIPIENT: ${SLACK_RECIPIENT:-#alerts}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
