@@ -32,7 +32,7 @@ groups:
                 conditions:
                     - evaluator:
                         params:
-                            - 0
+                            - 1
                         type: lt
                       operator:
                         type: and
@@ -89,7 +89,7 @@ groups:
                 conditions:
                     - evaluator:
                         params:
-                            - 0
+                            - 1
                         type: lt
                       operator:
                         type: and
