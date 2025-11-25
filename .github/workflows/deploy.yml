@@ -176,10 +176,13 @@ jobs:
             -e "dockerhub_username=${{ secrets.DOCKERHUB_USERNAME }}" \
             -e "dockerhub_password=${{ secrets.DOCKERHUB_TOKEN }}" \
             -e "account_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/account-service" \
-            -e "transaction_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/transaction-service" \
-            -e "autoscale_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service" \
-            -e "canary_tag=${{ steps.vars.outputs.tag }}" \
-            -e "canary_traffic_percentage=${{ steps.rollout.outputs.weight }}" \
-            -e "promote_canary=${{ steps.rollout.outputs.promote }}" \
-            -e "enable_canary=${{ steps.rollout.outputs.enable }}" \
-            ansible/playbooks/deploy.yml
+          -e "transaction_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/transaction-service" \
+          -e "autoscale_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service" \
+          -e "canary_tag=${{ steps.vars.outputs.tag }}" \
+          -e "canary_traffic_percentage=${{ steps.rollout.outputs.weight }}" \
+          -e "promote_canary=${{ steps.rollout.outputs.promote }}" \
+          -e "enable_canary=${{ steps.rollout.outputs.enable }}" \
+          -e "cosign_enable_verify=true" \
+          -e "cosign_install_binary=true" \
+          -e "cosign_public_key_content=${{ secrets.COSIGN_PUBLIC_KEY }}" \
+          ansible/playbooks/deploy.yml
