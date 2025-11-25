@@ -66,3 +66,10 @@ scrape_configs:
         labels:
           service: 'rabbitmq'
 
+  # Autoscale Service
+  - job_name: 'autoscale-service'
+    static_configs:
+      - targets: ['banking-autoscale:8080']
+        labels:
+          service: 'autoscale-service'
+

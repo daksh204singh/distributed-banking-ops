@@ -6,5 +6,9 @@ policies:
     group_wait: 10s
     group_interval: 1m
     repeat_interval: 1h
-    routes: []
+    routes:
+      - receiver: Slack Alerts
+        matchers:
+          - severity = critical
+        continue: false
 

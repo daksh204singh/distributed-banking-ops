@@ -8,4 +8,12 @@ contactPoints:
         settings:
           url: http://banking-autoscale:8080/webhook/autoscale
           httpMethod: POST
+  - orgId: 1
+    name: Slack Alerts
+    receivers:
+      - uid: slack_webhook
+        type: slack
+        settings:
+          url: ${SLACK_WEBHOOK_URL}
+        disableResolveMessage: false
 
