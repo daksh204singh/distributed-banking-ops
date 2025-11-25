@@ -1,0 +1,11 @@
+apiVersion: 1
+contactPoints:
+  - orgId: 1
+    name: autoscale-webhook
+    receivers:
+      - uid: autoscale_webhook
+        type: webhook
+        settings:
+          url: http://banking-autoscale:8080/webhook/autoscale
+          httpMethod: POST
+

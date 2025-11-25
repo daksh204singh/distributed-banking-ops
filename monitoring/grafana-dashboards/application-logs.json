@@ -18,14 +18,14 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 3,
+  "id": 4,
   "links": [],
   "liveNow": false,
   "panels": [
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -48,10 +48,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{job=\"application-logs\", container=~\"banking-account-service.*\"} !~ \"canary\"",
+          "expr": "{job=\"application-logs\", container=~\"^banking-account-service(-[0-9]+)?$\", container!~\".*-canary$\"}",
           "queryType": "range",
           "refId": "A"
         }
@@ -62,7 +62,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -85,7 +85,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
           "expr": "{job=\"application-logs\", container=~\"banking-account-service-canary.*\"}",
@@ -99,7 +99,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -122,10 +122,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{job=\"application-logs\", container=~\"banking-transaction-service.*\"} !~ \"canary\"",
+          "expr": "{job=\"application-logs\", container=~\"^banking-transaction-service(-[0-9]+)?$\", container!~\".*-canary$\"}",
           "queryType": "range",
           "refId": "A"
         }
@@ -136,7 +136,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -159,7 +159,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
           "expr": "{job=\"application-logs\", container=~\"banking-transaction-service-canary.*\"}",
@@ -173,7 +173,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -196,10 +196,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{job=\"application-logs\", container=~\"banking-account-service.*\"} !~ \"canary\" |= \"error\"",
+          "expr": "{job=\"application-logs\", container=~\"^banking-account-service(-[0-9]+)?$\"} |= \"error\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -210,7 +210,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -233,7 +233,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
           "expr": "{job=\"application-logs\", container=~\"banking-account-service-canary.*\"} |= \"error\"",
@@ -247,7 +247,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -270,10 +270,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{job=\"application-logs\", container=~\"banking-transaction-service.*\"} !~ \"canary\" |= \"error\"",
+          "expr": "{job=\"application-logs\", container=~\"^banking-transaction-service(-[0-9]+)?$\"} |= \"error\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -284,7 +284,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -307,7 +307,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
+            "uid": "loki"
           },
           "editorMode": "code",
           "expr": "{job=\"application-logs\", container=~\"banking-transaction-service-canary.*\"} |= \"error\"",

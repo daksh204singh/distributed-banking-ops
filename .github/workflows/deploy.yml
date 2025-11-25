@@ -97,6 +97,17 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/transaction-service:${{ steps.vars.outputs.tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/transaction-service:latest
 
+      - name: Build and push autoscale service image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: autoscale-service/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service:${{ steps.vars.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service:latest
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -146,6 +157,9 @@ jobs:
             --private-key ~/.ssh/id_rsa \
             -e "dockerhub_username=${{ secrets.DOCKERHUB_USERNAME }}" \
             -e "dockerhub_password=${{ secrets.DOCKERHUB_TOKEN }}" \
+            -e "account_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/account-service" \
+            -e "transaction_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/transaction-service" \
+            -e "autoscale_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service" \
             -e "canary_tag=${{ steps.vars.outputs.tag }}" \
             -e "canary_traffic_percentage=${{ steps.rollout.outputs.weight }}" \
             -e "promote_canary=${{ steps.rollout.outputs.promote }}" \
