@@ -108,6 +108,24 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service:${{ steps.vars.outputs.tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service:latest
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign images with cosign
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.vars.outputs.tag }}"
+          USER="${{ secrets.DOCKERHUB_USERNAME }}"
+          printf '%s' "${COSIGN_PRIVATE_KEY}" > /tmp/cosign.key
+          for IMG in account-service transaction-service autoscale-service; do
+            cosign sign --key /tmp/cosign.key docker.io/${USER}/${IMG}:${TAG}
+            cosign sign --key /tmp/cosign.key docker.io/${USER}/${IMG}:latest
+          done
+          rm -f /tmp/cosign.key
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
