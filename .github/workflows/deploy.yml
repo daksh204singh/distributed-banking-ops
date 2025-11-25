@@ -157,6 +157,17 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts
 
+      - name: Prepare cosign vars for Ansible
+        env:
+          COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
+        run: |
+          {
+            echo "cosign_enable_verify: true"
+            echo "cosign_install_binary: true"
+            echo "cosign_public_key_content: |"
+            printf '%s\n' "$COSIGN_PUBLIC_KEY" | sed 's/^/  /'
+          } > /tmp/cosign-vars.yml
+
       - name: Run Ansible deployment
         env:
           ANSIBLE_HOST_KEY_CHECKING: "false"
@@ -178,12 +189,10 @@ jobs:
             -e "dockerhub_password=${{ secrets.DOCKERHUB_TOKEN }}" \
             -e "account_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/account-service" \
           -e "transaction_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/transaction-service" \
-          -e "autoscale_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service" \
-          -e "canary_tag=${{ steps.vars.outputs.tag }}" \
-          -e "canary_traffic_percentage=${{ steps.rollout.outputs.weight }}" \
-          -e "promote_canary=${{ steps.rollout.outputs.promote }}" \
-          -e "enable_canary=${{ steps.rollout.outputs.enable }}" \
-          -e "cosign_enable_verify=true" \
-          -e "cosign_install_binary=true" \
-          -e "cosign_public_key_content=${{ secrets.COSIGN_PUBLIC_KEY }}" \
-          ansible/playbooks/deploy.yml
+            -e "autoscale_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service" \
+            -e "canary_tag=${{ steps.vars.outputs.tag }}" \
+            -e "canary_traffic_percentage=${{ steps.rollout.outputs.weight }}" \
+            -e "promote_canary=${{ steps.rollout.outputs.promote }}" \
+            -e "enable_canary=${{ steps.rollout.outputs.enable }}" \
+            -e "@/tmp/cosign-vars.yml" \
+            ansible/playbooks/deploy.yml
