@@ -5,6 +5,7 @@
   vars:
     account_service_image_repo: "{{ dockerhub_username }}/account-service"
     transaction_service_image_repo: "{{ dockerhub_username }}/transaction-service"
+    autoscale_service_image_repo: "{{ dockerhub_username }}/autoscale-service"
   roles:
     - docker
     - banking_app
