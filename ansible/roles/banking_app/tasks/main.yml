@@ -616,6 +616,7 @@
       GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
       GF_USERS_ALLOW_SIGN_UP: "{{ grafana_allow_sign_up }}"
       SLACK_WEBHOOK_URL: "{{ slack_webhook_url }}"
+      SLACK_WEBHOOK_RECIPIENT: "{{ slack_webhook_recipient }}"
     volumes:
       - "{{ grafana_volume_name }}:/var/lib/grafana"
       - "{{ grafana_datasources_file }}:/etc/grafana/provisioning/datasources/datasources.yml:ro"

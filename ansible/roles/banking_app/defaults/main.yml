@@ -63,6 +63,7 @@ grafana_admin_user: "{{ lookup('env', 'GRAFANA_ADMIN_USER') | default('admin', t
 grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default('admin', true) }}"
 grafana_allow_sign_up: "{{ lookup('env', 'GRAFANA_ALLOW_SIGN_UP') | default('false', true) }}"
 slack_webhook_url: "{{ lookup('env', 'SLACK_WEBHOOK_URL') | default('', true) }}"
+slack_webhook_recipient: "{{ lookup('env', 'SLACK_WEBHOOK_RECIPIENT') | default('#alerts', true) }}"
 rabbitmq_queue: "{{ lookup('env', 'RABBITMQ_QUEUE') | default('transaction.created', true) }}"
 rabbitmq_management_port: "{{ lookup('env', 'RABBITMQ_MANAGEMENT_PORT') | default(15672, true) }}"
 rabbitmq_port: "{{ lookup('env', 'RABBITMQ_PORT') | default(5672, true) }}"
