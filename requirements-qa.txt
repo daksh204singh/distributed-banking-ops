@@ -13,3 +13,6 @@ httpx==0.25.2  # Required for FastAPI TestClient
 # Integration testing infrastructure
 testcontainers[compose]==4.13.3
 
+# Load testing
+locust==2.20.0
+
