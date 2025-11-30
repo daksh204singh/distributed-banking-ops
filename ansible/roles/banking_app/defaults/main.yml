@@ -18,6 +18,7 @@ loki_container_name: banking-loki
 promtail_container_name: banking-promtail
 prometheus_container_name: banking-prometheus
 grafana_container_name: banking-grafana
+autoscale_service_container_name: banking-autoscale
 
 # Container images
 postgres_image: postgres:15-alpine
@@ -28,6 +29,7 @@ prometheus_image: prom/prometheus:v2.48.0
 grafana_image: grafana/grafana:10.2.0
 account_service_image_repo: ""
 transaction_service_image_repo: ""
+autoscale_service_image_repo: ""
 
 # Deployment strategy
 enable_canary: true
@@ -45,6 +47,7 @@ account_service_port: 8000              # stable host port
 transaction_service_port: 8001          # stable host port
 account_service_canary_port: 8100
 transaction_service_canary_port: 8101
+autoscale_service_port: 8080
 
 # Database credentials
 postgres_user: "{{ lookup('env', 'POSTGRES_USER') | default('bankuser', true) }}"
@@ -59,6 +62,9 @@ rabbitmq_password: "{{ lookup('env', 'RABBITMQ_PASSWORD') | default('guest', tru
 grafana_admin_user: "{{ lookup('env', 'GRAFANA_ADMIN_USER') | default('admin', true) }}"
 grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default('admin', true) }}"
 grafana_allow_sign_up: "{{ lookup('env', 'GRAFANA_ALLOW_SIGN_UP') | default('false', true) }}"
+slack_webhook_url: "{{ lookup('env', 'SLACK_WEBHOOK_URL') | default('', true) }}"
+slack_webhook_recipient: "{{ lookup('env', 'SLACK_WEBHOOK_RECIPIENT') | default('#alerts', true) }}"
+grafana_root_url: "{{ lookup('env', 'GRAFANA_ROOT_URL') | default('http://localhost:3000', true) }}"
 rabbitmq_queue: "{{ lookup('env', 'RABBITMQ_QUEUE') | default('transaction.created', true) }}"
 rabbitmq_management_port: "{{ lookup('env', 'RABBITMQ_MANAGEMENT_PORT') | default(15672, true) }}"
 rabbitmq_port: "{{ lookup('env', 'RABBITMQ_PORT') | default(5672, true) }}"
@@ -74,8 +80,17 @@ loki_config_file: "{{ monitoring_config_path }}/loki-config.yml"
 promtail_config_file: "{{ monitoring_config_path }}/promtail-config.yml"
 prometheus_config_file: "{{ monitoring_config_path }}/prometheus-config.yml"
 grafana_datasources_file: "{{ monitoring_config_path }}/grafana-datasources.yml"
+grafana_dashboard_provisioning_file: "{{ monitoring_config_path }}/grafana-dashboard-provisioning.yml"
+grafana_dashboards_dir: "{{ monitoring_config_path }}/grafana-dashboards"
+grafana_alerting_dir: "{{ monitoring_config_path }}/grafana-alerting"
 canary_failure_log_dir: /var/log/banking/canary_failures
 
+# Image verification
+cosign_enable_verify: false
+cosign_public_key_path: /etc/cosign.pub
+cosign_public_key_content: ""
+cosign_download_url: "https://github.com/sigstore/cosign/releases/download/v2.2.4/cosign-linux-amd64"
+cosign_install_binary: false
 # Firewall configuration
 firewall_tcp_ports:
   - "{{ account_service_port }}"
@@ -89,5 +104,6 @@ firewall_tcp_ports:
   - "{{ promtail_port }}"
   - "{{ prometheus_port }}"
   - "{{ grafana_port }}"
+  - "{{ autoscale_service_port }}"
   - "{{ nginx_host_port }}"
 nginx_host_port: 80

@@ -171,3 +171,120 @@ jobs:
         run: |
           pytest --cov=app.service --cov-report=term-missing --cov-fail-under=75 tests/ -v
 
+  # Integration Tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: self-hosted
+    needs: [unit-test-coverage-account-service, unit-test-coverage-transaction-service]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      POSTGRES_USER: ${{ secrets.TEST_POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.TEST_POSTGRES_PASSWORD }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-qa.txt
+          pip install -r account-service/requirements.txt
+          pip install -r transaction-service/requirements.txt
+
+      - name: Run integration tests
+        run: |
+          set -euo pipefail
+          pytest integration-tests/ -v --tb=short
+
+  # Load Testing
+  load-tests:
+    name: Load Tests
+    runs-on: self-hosted
+    needs: [integration-tests]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      POSTGRES_USER: ${{ secrets.TEST_POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.TEST_POSTGRES_PASSWORD }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-qa.txt
+          pip install -r account-service/requirements.txt
+          pip install -r transaction-service/requirements.txt
+
+      - name: Start services with Docker Compose
+        run: |
+          docker compose up -d --build
+          echo "Waiting for services to be healthy..."
+          timeout 120 bash -c 'until curl -f http://localhost:8000/health && curl -f http://localhost:8001/health; do sleep 2; done'
+          echo "✅ All services are healthy"
+
+      - name: Run load tests
+        working-directory: ./load-tests
+        run: |
+          set -euo pipefail
+          chmod +x run_load_test.sh
+          ./run_load_test.sh
+
+      - name: Upload load test report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: load-test-report
+          path: |
+            load-tests/load_test_report.html
+            load-tests/load_test_results_*.csv
+          retention-days: 30
+
+      - name: Check load test results
+        working-directory: ./load-tests
+        run: |
+          # Check if failure rate is acceptable (fail if > 5%)
+          if [ -f load_test_results_stats.csv ]; then
+            # Read the last line (summary) and extract failure rate
+            # Format: Type,Name,Request Count,Failure Count,Median Response Time,Average Response Time,Min Response Time,Max Response Time,Average Content Size,Requests/s,Failures/s
+            FAILURE_COUNT=$(tail -n 1 load_test_results_stats.csv | cut -d',' -f4)
+            REQUEST_COUNT=$(tail -n 1 load_test_results_stats.csv | cut -d',' -f3)
+            if [ -n "$REQUEST_COUNT" ] && [ "$REQUEST_COUNT" != "0" ] && [ -n "$REQUEST_COUNT" ]; then
+              # Calculate failure rate percentage using awk (more portable than bc)
+              FAILURE_RATE=$(awk "BEGIN {printf \"%.2f\", ($FAILURE_COUNT / $REQUEST_COUNT) * 100}")
+              echo "Total requests: $REQUEST_COUNT"
+              echo "Total failures: $FAILURE_COUNT"
+              echo "Failure rate: ${FAILURE_RATE}%"
+              # Compare using awk (more portable)
+              if awk "BEGIN {exit !($FAILURE_RATE > 5.0)}"; then
+                echo "❌ Load test failed: Failure rate ${FAILURE_RATE}% exceeds 5% threshold"
+                exit 1
+              fi
+              echo "✅ Load test passed: Failure rate ${FAILURE_RATE}% is within acceptable range"
+            else
+              echo "⚠️  Warning: Could not parse load test results"
+            fi
+          else
+            echo "⚠️  Warning: Could not find load test results file"
+          fi
+
+      - name: Cleanup services
+        if: always()
+        run: |
+          docker compose down -v
+          echo "✅ Services cleaned up"
+

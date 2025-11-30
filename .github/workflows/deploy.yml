@@ -97,6 +97,36 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/transaction-service:${{ steps.vars.outputs.tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/transaction-service:latest
 
+      - name: Build and push autoscale service image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: autoscale-service/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service:${{ steps.vars.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service:latest
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign images with cosign
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_YES: "true"
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.vars.outputs.tag }}"
+          USER="${{ secrets.DOCKERHUB_USERNAME }}"
+          printf '%s' "${COSIGN_PRIVATE_KEY}" > /tmp/cosign.key
+          for IMG in account-service transaction-service autoscale-service; do
+            cosign sign --key /tmp/cosign.key docker.io/${USER}/${IMG}:${TAG}
+            cosign sign --key /tmp/cosign.key docker.io/${USER}/${IMG}:latest
+          done
+          rm -f /tmp/cosign.key
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -127,6 +157,17 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts
 
+      - name: Prepare cosign vars for Ansible
+        env:
+          COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
+        run: |
+          {
+            echo "cosign_enable_verify: true"
+            echo "cosign_install_binary: true"
+            echo "cosign_public_key_content: |"
+            printf '%s\n' "$COSIGN_PUBLIC_KEY" | sed 's/^/  /'
+          } > /tmp/cosign-vars.yml
+
       - name: Run Ansible deployment
         env:
           ANSIBLE_HOST_KEY_CHECKING: "false"
@@ -139,15 +180,26 @@ jobs:
           RABBITMQ_QUEUE: ${{ secrets.RABBITMQ_QUEUE }}
           RABBITMQ_PORT: ${{ secrets.RABBITMQ_PORT }}
           RABBITMQ_MANAGEMENT_PORT: ${{ secrets.RABBITMQ_MANAGEMENT_PORT }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_RECIPIENT: ${{ secrets.SLACK_WEBHOOK_RECIPIENT }}
+          TARGET_HOST: ${{ secrets.ANSIBLE_HOST }}
         run: |
+          HOST="${TARGET_HOST:-YOUR_PRODUCTION_HOST_IP}"
           ansible-playbook \
             -i ansible/inventory/hosts.ini \
             -u "${{ secrets.ANSIBLE_USER }}" \
             --private-key ~/.ssh/id_rsa \
             -e "dockerhub_username=${{ secrets.DOCKERHUB_USERNAME }}" \
             -e "dockerhub_password=${{ secrets.DOCKERHUB_TOKEN }}" \
+            -e "account_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/account-service" \
+          -e "transaction_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/transaction-service" \
+            -e "autoscale_service_image_repo=${{ secrets.DOCKERHUB_USERNAME }}/autoscale-service" \
+            -e "slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -e "slack_webhook_recipient=${{ secrets.SLACK_WEBHOOK_RECIPIENT }}" \
+            -e "grafana_root_url=http://${HOST}:3000" \
             -e "canary_tag=${{ steps.vars.outputs.tag }}" \
             -e "canary_traffic_percentage=${{ steps.rollout.outputs.weight }}" \
             -e "promote_canary=${{ steps.rollout.outputs.promote }}" \
             -e "enable_canary=${{ steps.rollout.outputs.enable }}" \
+            -e "@/tmp/cosign-vars.yml" \
             ansible/playbooks/deploy.yml

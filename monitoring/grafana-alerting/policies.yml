@@ -1,0 +1,14 @@
+apiVersion: 1
+policies:
+  - orgId: 1
+    receiver: autoscale-webhook
+    group_by: ['alertname','service']
+    group_wait: 10s
+    group_interval: 1m
+    repeat_interval: 1h
+    routes:
+      - receiver: Slack Alerts
+        matchers:
+          - severity = critical
+        continue: false
+

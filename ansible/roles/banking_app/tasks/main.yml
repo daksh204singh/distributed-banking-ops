@@ -134,6 +134,13 @@
     transaction_service_stable_image: "{{ transaction_service_image_repo }}:{{ current_stable_tag }}"
     transaction_service_canary_image: "{{ transaction_service_image_repo }}:{{ effective_canary_tag }}"
 
+- name: Define autoscale service image reference
+  ansible.builtin.set_fact:
+    autoscale_service_image: "{{ autoscale_service_image_repo }}:{{ current_stable_tag }}"
+  when: 
+    - autoscale_service_image_repo is defined
+    - autoscale_service_image_repo | length > 0
+
 - name: Define shared environment configuration
   ansible.builtin.set_fact:
     service_common_env:
@@ -166,6 +173,60 @@
     path: "{{ canary_failure_log_dir }}"
     state: directory
     mode: '0755'
+
+- name: Ensure cosign binary is present when verification is enabled
+  when: cosign_enable_verify | bool
+  block:
+    - name: Check for cosign
+      ansible.builtin.command: cosign version
+      register: cosign_version
+      changed_when: false
+      failed_when: false
+
+    - name: Download cosign binary
+      ansible.builtin.get_url:
+        url: "{{ cosign_download_url }}"
+        dest: /usr/local/bin/cosign
+        mode: '0755'
+      when:
+        - cosign_install_binary | bool
+        - cosign_version.rc != 0
+
+    - name: Fail if cosign is missing
+      ansible.builtin.fail:
+        msg: "Cosign is required for image verification but is not installed. Set cosign_install_binary=true or install manually."
+      when:
+        - cosign_version.rc != 0
+        - not cosign_install_binary | bool
+
+    - name: Write cosign public key
+      ansible.builtin.copy:
+        dest: "{{ cosign_public_key_path }}"
+        content: "{{ cosign_public_key_content }}"
+        mode: '0644'
+      when: cosign_public_key_content | length > 0
+
+- name: Build list of images for verification
+  ansible.builtin.set_fact:
+    images_for_verification: >-
+      {{
+        (
+          [
+            account_service_stable_image,
+            transaction_service_stable_image
+          ]
+          + (enable_canary | bool | ternary([account_service_canary_image, transaction_service_canary_image], []))
+          + ((autoscale_service_image is defined and (autoscale_service_image | length > 0)) | ternary([autoscale_service_image], []))
+        ) | unique
+      }}
+  when: cosign_enable_verify | bool
+
+- name: Verify container images with cosign
+  ansible.builtin.command: >
+    cosign verify --key {{ cosign_public_key_path }} {{ item }}
+  loop: "{{ images_for_verification | default([]) }}"
+  changed_when: false
+  when: cosign_enable_verify | bool
 
 - name: Create monitoring configuration directory
   ansible.builtin.file:
@@ -200,6 +261,45 @@
     dest: "{{ grafana_datasources_file }}"
     mode: '0644'
     remote_src: false
+
+- name: Copy Grafana dashboard provisioning configuration file
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../monitoring/grafana-dashboard-provisioning.yml"
+    dest: "{{ grafana_dashboard_provisioning_file }}"
+    mode: '0644'
+    remote_src: false
+
+- name: Create Grafana dashboards directory
+  ansible.builtin.file:
+    path: "{{ grafana_dashboards_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy Grafana dashboards
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ grafana_dashboards_dir }}/{{ item | basename }}"
+    mode: '0644'
+    remote_src: false
+  loop: "{{ lookup('fileglob', playbook_dir + '/../../monitoring/grafana-dashboards/*.json', wantlist=True) }}"
+
+- name: Ensure Grafana alerting directory exists
+  ansible.builtin.file:
+    path: "{{ grafana_alerting_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy Grafana alerting provisioning files
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ grafana_alerting_dir }}/{{ item | basename }}"
+    mode: '0644'
+    remote_src: false
+  loop:
+    - "{{ playbook_dir }}/../../monitoring/grafana-alerting/contact-points.yml"
+    - "{{ playbook_dir }}/../../monitoring/grafana-alerting/policies.yml"
+    - "{{ playbook_dir }}/../../monitoring/grafana-alerting/rules-autoscale.yml"
+    - "{{ playbook_dir }}/../../monitoring/grafana-alerting/rules-service-health.yml"
 
 - name: Run Postgres database container
   community.docker.docker_container:
@@ -400,6 +500,8 @@
     env: "{{ service_common_env }}"
     networks:
       - name: "{{ docker_network_name }}"
+        aliases:
+          - account-service
     published_ports:
       - "{{ account_service_port }}:{{ account_service_container_port }}"
     labels:
@@ -423,6 +525,8 @@
     env: "{{ service_common_env }}"
     networks:
       - name: "{{ docker_network_name }}"
+        aliases:
+          - transaction-service
     published_ports:
       - "{{ transaction_service_port }}:{{ transaction_service_container_port }}"
     labels:
@@ -443,6 +547,24 @@
     - "{{ account_service_canary_container_name }}"
     - "{{ transaction_service_canary_container_name }}"
   when: not (enable_canary | bool)
+
+- name: Find auto-scaled service containers (stable only)
+  ansible.builtin.shell: |
+    docker ps -a --format '{{"{{"}}.Names{{"}}"}}' | grep -E '^banking-(account|transaction)-service-[0-9]+$' || true
+  register: autoscaled_container_list
+  changed_when: false
+  when: cleanup_autoscaled_containers | default(true) | bool
+
+- name: Remove auto-scaled service containers
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ autoscaled_container_list.stdout_lines }}"
+  when:
+    - cleanup_autoscaled_containers | default(true) | bool
+    - autoscaled_container_list is defined
+    - autoscaled_container_list.stdout is defined
+    - autoscaled_container_list.stdout | length > 0
 
 - name: Fail deployment because canary health checks failed
   ansible.builtin.fail:
@@ -503,6 +625,7 @@
   community.docker.docker_container:
     name: "{{ prometheus_container_name }}"
     image: "{{ prometheus_image }}"
+    user: "root"
     restart_policy: unless-stopped
     state: started
     pull: true
@@ -514,6 +637,7 @@
     volumes:
       - "{{ prometheus_volume_name }}:/prometheus"
       - "{{ prometheus_config_file }}:/etc/prometheus/prometheus.yml:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
       - name: "{{ docker_network_name }}"
     published_ports:
@@ -545,9 +669,15 @@
       GF_SECURITY_ADMIN_USER: "{{ grafana_admin_user }}"
       GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
       GF_USERS_ALLOW_SIGN_UP: "{{ grafana_allow_sign_up }}"
+      GF_SERVER_ROOT_URL: "{{ grafana_root_url }}"
+      SLACK_WEBHOOK_URL: "{{ slack_webhook_url }}"
+      SLACK_WEBHOOK_RECIPIENT: "{{ slack_webhook_recipient }}"
     volumes:
       - "{{ grafana_volume_name }}:/var/lib/grafana"
       - "{{ grafana_datasources_file }}:/etc/grafana/provisioning/datasources/datasources.yml:ro"
+      - "{{ grafana_dashboard_provisioning_file }}:/etc/grafana/provisioning/dashboards/default.yml:ro"
+      - "{{ grafana_dashboards_dir }}:/etc/grafana/provisioning/dashboards/dashboards:ro"
+      - "{{ grafana_alerting_dir }}:/etc/grafana/provisioning/alerting:ro"
     networks:
       - name: "{{ docker_network_name }}"
     published_ports:
@@ -555,6 +685,44 @@
     labels:
       service: "grafana"
       component: "monitoring"
+
+- name: Run autoscale service container
+  community.docker.docker_container:
+    name: "{{ autoscale_service_container_name }}"
+    image: "{{ autoscale_service_image }}"
+    restart_policy: unless-stopped
+    state: started
+    pull: true
+    recreate: true
+    env:
+      PYTHONPATH: "/app"
+      DOCKER_NETWORK: "{{ docker_network_name }}"
+      MIN_INSTANCES: "{{ autoscale_min_instances | default(1) }}"
+      MAX_INSTANCES: "{{ autoscale_max_instances | default(5) }}"
+      SCALING_COOLDOWN_MINUTES: "{{ autoscale_cooldown_minutes | default(5) }}"
+      DOCKER_TIMEOUT: "{{ autoscale_docker_timeout | default(60) }}"
+      CONTAINER_STOP_TIMEOUT: "{{ autoscale_container_stop_timeout | default(30) }}"
+      DOCKER_QUERY_TIMEOUT: "{{ autoscale_docker_query_timeout | default(10) }}"
+      LOG_LEVEL: "{{ autoscale_log_level | default('INFO') }}"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - name: "{{ docker_network_name }}"
+    published_ports:
+      - "{{ autoscale_service_port }}:8080"
+    labels:
+      service: "autoscale"
+      component: "monitoring"
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+      labels: "service"
+  when: 
+    - autoscale_service_image_repo is defined
+    - autoscale_service_image_repo | length > 0
+    - autoscale_service_image is defined
+
 - name: Verify promoted account service via host port
   ansible.builtin.uri:
     url: "http://127.0.0.1:{{ account_service_port }}/health"
