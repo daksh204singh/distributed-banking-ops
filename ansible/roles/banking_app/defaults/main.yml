@@ -85,6 +85,12 @@ grafana_dashboards_dir: "{{ monitoring_config_path }}/grafana-dashboards"
 grafana_alerting_dir: "{{ monitoring_config_path }}/grafana-alerting"
 canary_failure_log_dir: /var/log/banking/canary_failures
 
+# Image verification
+cosign_enable_verify: false
+cosign_public_key_path: /etc/cosign.pub
+cosign_public_key_content: ""
+cosign_download_url: "https://github.com/sigstore/cosign/releases/download/v2.2.4/cosign-linux-amd64"
+cosign_install_binary: false
 # Firewall configuration
 firewall_tcp_ports:
   - "{{ account_service_port }}"
