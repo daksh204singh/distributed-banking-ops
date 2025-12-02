@@ -359,5 +359,5 @@ distributed-banking-ops/
 └── shared/                     # Shared utilities
     ├── events.py              # Event schemas
     └── logging_config.py      # Structured logging configuration
-```
+``` 
 
