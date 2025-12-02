@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 6,
+  "id": 8,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -224,12 +224,28 @@
           "editorMode": "code",
           "expr": "sum(rate(http_requests_total[5m])) by (container)",
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{container}}",
           "range": true,
           "refId": "A"
         }
       ],
       "title": "Request Rate",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Time",
+                "banking-account-service",
+                "banking-account-service-canary",
+                "banking-transaction-service",
+                "banking-transaction-service-canary"
+              ]
+            }
+          }
+        }
+      ],
       "type": "timeseries"
     },
     {
@@ -415,8 +431,8 @@
             "uid": "prometheus"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "count by(job) (up{job=~\"account-service|transaction-service\", container!~\".*-canary$\"})",
+          "editorMode": "code",
+          "expr": "count by(job) (up{job=~\"account-service|transaction-service|autoscale-service\", container!~\".*-canary$\"})",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -540,6 +556,22 @@
         }
       ],
       "title": "CPU Usage",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Time",
+                "banking-account-service",
+                "banking-account-service-canary",
+                "banking-transaction-service",
+                "banking-transaction-service-canary"
+              ]
+            }
+          }
+        }
+      ],
       "type": "timeseries"
     },
     {
@@ -692,6 +724,6 @@
   "timezone": "",
   "title": "Metrics Monitor",
   "uid": "cbd8de15-b766-4697-9590-cba58c651b96",
-  "version": 4,
+  "version": 3,
   "weekStart": ""
 }
