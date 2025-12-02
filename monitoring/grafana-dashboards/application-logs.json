@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 4,
+  "id": 6,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -199,7 +199,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{job=\"application-logs\", container=~\"^banking-account-service(-[0-9]+)?$\"} |= \"error\"",
+          "expr": "{job=\"application-logs\", container=~\"^banking-account-service(-[0-9]+)?$\"} \n  | json \n  | status_code =~ \"[45]\\\\d{2}\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -236,7 +236,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{job=\"application-logs\", container=~\"banking-account-service-canary.*\"} |= \"error\"",
+          "expr": "{job=\"application-logs\", container=~\"banking-account-service-canary.*\"} \n  | json \n  | status_code =~ \"[45]\\\\d{2}\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -273,7 +273,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{job=\"application-logs\", container=~\"^banking-transaction-service(-[0-9]+)?$\"} |= \"error\"",
+          "expr": "{job=\"application-logs\", container=~\"^banking-transaction-service(-[0-9]+)?$\"} \n  | json \n  | status_code =~ \"[45]\\\\d{2}\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -310,7 +310,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{job=\"application-logs\", container=~\"banking-transaction-service-canary.*\"} |= \"error\"",
+          "expr": "{job=\"application-logs\", container=~\"banking-account-service-canary.*\"} \n  | json \n  | status_code =~ \"[45]\\\\d{2}\"",
           "queryType": "range",
           "refId": "A"
         }
