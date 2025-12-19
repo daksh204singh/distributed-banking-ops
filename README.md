@@ -1,6 +1,7 @@
 # distributed-banking-ops
 
 ## Overview
+
 This project implements an event-driven CI/CD pipeline for a distributed banking application. Banking workloads demand real-time responsiveness, high fault-tolerance, and dynamic scaling, especially during traffic surges like Black Friday. Our pipeline automates testing, secure deployment, and continuous monitoring to ensure reliability, rapid yet safe delivery, and efficient infrastructure utilization.
 
 By combining GitHub Actions, Docker, Ansible, Prometheus, Grafana, Loki, and automated scaling scripts, this system simulates a production-grade DevOps environment designed for mission-critical financial services.
@@ -8,6 +9,7 @@ By combining GitHub Actions, Docker, Ansible, Prometheus, Grafana, Loki, and aut
 Deployment automation, canary strategy details, and manual run instructions are documented in `docs/deployment.md`.
 
 ## Key Deliverables
+
 - **Repository & Branch Protection**: Feature branches, PR workflows, protected release branch.
 - **Automated CI Pipeline**: Linting, unit tests, integration tests, and security scans.
 - **Test Environment Provisioning**: On-demand test containers & automated load testing.
@@ -17,41 +19,7 @@ Deployment automation, canary strategy details, and manual run instructions are 
 - **Monitoring & Observability Stack**: Prometheus + Grafana dashboards, Loki logs, alerts.
 - **Notifications & Rollback Mechanisms**: PR feedback, deployment alerts, automated rollback.
 
-## 
-
-### Team Members
-- **YOUR_SSH_USER**
-  - **Production Deployment & Release Automation**:
-    - Develop and maintain Ansible playbooks for production deployment (not test).
-    - Build and manage production-ready Docker images and registry pushes.
-  - **Load Balancing & Canary Deployment**:
-    - Configure NGINX-based load balancing across app instances.
-    - Implement canary deployment logic with gradual traffic migration and automated rollback.
-  - **Release Branch Management**
-    - Enforce branch protection rules, manual review, and approval-gated release process.
-
-- **YOUR_SSH_USER**
-  - **Monitoring & Auto-Scaling**
-    - Deploy and configure Prometheus, Grafana, and Loki for metrics, dashboards, and logs.
-    - Set alert rules and webhook triggers for real-time scaling decisions.
-    - Build auto-scaling script to programmatically start/stop containers based on CPU load.
-  - **System Health & Alerting**
-    - Configure alerting pipeline (email/webhook) and predictive scaling behavior.
-
-- ****
-  - **Automated Testing & CI**
-    - Configure GitHub Actions pipeline for linting, unit tests, integration tests, and security scanning.
-    - Maintain test suite and enforce test coverage requirements.
-  - **Load Testing & CI Environment**
-    - Implement load-test stage and teardown automation inside CI pipeline.
-    - Develop Ansible playbooks for test environment provisioning and cleanup.
-  - **PR Feedback Automation**
-    - Ensure test, lint, and security logs surface back into GitHub PR for developer insights.
-
-> **Note:** While specific deliverables are assigned, all team members will actively contribute technical expertise across the project to ensure robust integration and quality outcomes.
-
 ---
-
 
 ## Pipeline Architecture
 
@@ -83,6 +51,7 @@ When a PR is opened to either `main` or `develop`, two GitHub Actions run in par
 If any stage fails, the PR is blocked; if everything passes, the PR moves to Ready for Review.
 
 **Test Locations**:
+
 - Unit tests: `account-service/tests/`, `transaction-service/tests/`
 - Integration tests: `integration-tests/`
 - Load tests: `load-tests/`
@@ -99,6 +68,7 @@ The continuous deployment workflow is completely automated and begins as soon as
 4. Remotely triggering the Ansible deployment playbook on the VCL host by securely injecting SSH keys, inventory details, and configuration variables
 
 **Ansible Deployment** (`ansible/playbooks/deploy.yml`):
+
 - Pulls the freshly built images from Docker Hub
 - Prunes outdated containers
 - Regenerates environment files
@@ -252,36 +222,36 @@ This workflow ensures all code is validated, reviewed, and safely deployed throu
 ## Security Features
 
 ### GitHub Secrets Integration
-**Contributor**:  (YOUR_SSH_USER)
+
 - Migrated all sensitive values (SSH keys, DB creds, host info) into GitHub Secrets to prevent plaintext exposure and ensure secure runtime injection
 - **Location**: Configured in GitHub repository settings and referenced in `.github/workflows/deploy.yml`
 
 ### Cosign Image Signing
-**Contributor**:  (YOUR_SSH_USER)
+
 - Added Cosign to sign Docker images during build and verify signatures during deployment
 - Ensures only trusted, tamper-free images run in production
 - **Location**: `.github/workflows/deploy.yml` (signing), `ansible/roles/banking_app/tasks/main.yml` (verification)
 
 ### Sensitive Data Masking
-**Contributor**:  (YOUR_SSH_USER)
+
 - Implemented application-level masking to redact financial data before logs reach Loki/Promtail
 - Eliminates PII leakage risk
 - **Location**: `shared/logging_config.py`
 
 ### Trivy Vulnerability Scanning
-**Contributor**:  (YOUR_SSH_USER)
+
 - Set up automated Trivy scans every 48 hours to detect high-severity image and dependency vulnerabilities early
 - Enforces shift-left security
 - **Location**: `.github/workflows/cve-scan.yml`
 
 ### CVE Scan Cron Job
-**Contributor**:  ()
+
 - Added a recurring job that evaluates dependency vulnerabilities, reports known CVEs, and suggests patched versions
 - Streamlines developer remediation
 - **Location**: `.github/workflows/cve-scan.yml`, `scripts/check_vulnerabilities.py`
 
 ### Security Scan in CI
-**Contributor**:  ()
+
 - Integrated Bandit to detect hardcoded secrets, SQL injection risks, and OWASP-mapped issues
 - Blocks PRs with high- or medium-severity findings
 - **Location**: `.github/workflows/security-scan.yml`, `scripts/check_bandit_results.py`

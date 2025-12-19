@@ -106,6 +106,6 @@ Expect to see the following containers:
 ## Troubleshooting
 
 - **Docker permissions on the runner** – the self-hosted runner still needs Docker + group membership; restart `./run.sh` after changing groups.
-- **SSH access** – TCP/22 must stay open from the runner (YOUR_RUNNER_IP) to the host (YOUR_PRODUCTION_HOST_IP). Sanity-check with `ssh YOUR_SSH_USER@YOUR_PRODUCTION_HOST_IP`.
+- **SSH access** – TCP/22 must stay open from the runner (`YOUR_RUNNER_IP`) to the host (`YOUR_PRODUCTION_HOST_IP`). Sanity-check with `ssh YOUR_SSH_USER@YOUR_PRODUCTION_HOST_IP`.
 - **Tag mismatch** – if services restart with “password authentication failed”, either reset the Postgres volume or update the `POSTGRES_*` secrets to match the DB credentials on disk.
 - **Canary rollback** – when the canary fails its health checks, the workflow exits with an error but the stable release stays online. Inspect `/var/log/banking/canary_failures/` for the captured logs + JSON summary before re-running with a fix.
